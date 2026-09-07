@@ -3,7 +3,6 @@
 @import '@fontsource/ibm-plex-sans/latin-400.css';
 @import '@fontsource/ibm-plex-sans/latin-500.css';
 @import '@fontsource/ibm-plex-sans/latin-600.css';
-@import '@fontsource/ibm-plex-mono/latin-400.css';
 :root {
   font-family: 'IBM Plex Sans', sans-serif;
   color: #182b42;
@@ -76,16 +75,10 @@ h3 {
   letter-spacing: -1px;
 }
 .brand-mark {
-  display: grid;
-  place-items: center;
+  display: block;
   width: 34px;
   height: 34px;
-  background: var(--blue);
-  color: white;
-  border-radius: 10px;
-  font-size: 23px;
-  letter-spacing: -3px;
-  padding-right: 3px;
+  flex-shrink: 0;
 }
 .brand-detail {
   font-family: 'IBM Plex Sans', sans-serif;
@@ -111,30 +104,14 @@ h3 {
   background: var(--orange);
 }
 .intro {
-  padding: 45px 0 32px;
-}
-.eyebrow {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
-  letter-spacing: 1.4px;
-  color: var(--muted);
-  line-height: 1.7;
+  padding: 32px 0;
 }
 h1 {
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 500;
-  font-size: clamp(30px, 4vw, 46px);
+  font-size: clamp(26px, 3vw, 36px);
   line-height: 1.12;
-  letter-spacing: -1.8px;
-  margin: 12px 0 15px;
-}
-h1 span {
-  color: var(--blue);
-}
-.intro > p:last-child {
-  font-size: 17px;
-  color: var(--muted);
-  line-height: 1.6;
+  letter-spacing: -1px;
 }
 .workspace {
   display: grid;
@@ -252,9 +229,8 @@ legend {
 .results-panel {
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 10px;
   padding: 26px 30px;
-  box-shadow: 0 8px 24px #182b4205;
   min-height: 440px;
 }
 .panel-heading {
@@ -269,10 +245,6 @@ legend {
   font-weight: 500;
   letter-spacing: -0.8px;
   margin-top: 5px;
-}
-.panel-icon {
-  font-size: 32px;
-  color: var(--blue);
 }
 .result-summary {
   font-size: 14px;
@@ -308,15 +280,6 @@ legend {
   font-size: 15px;
   font-weight: 500;
 }
-.top-skill {
-  font-size: 11px;
-  line-height: 1.35;
-  font-weight: 400;
-  color: var(--orange);
-  background: #fff0e9;
-  padding: 4px 6px;
-  border-radius: 4px;
-}
 .skill-measure {
   display: flex;
   align-items: center;
@@ -344,12 +307,6 @@ legend {
   background: #416799;
   border-radius: 3px;
 }
-.skill-chart li:first-child progress::-webkit-progress-value {
-  background: var(--orange);
-}
-.skill-chart li:first-child progress::-moz-progress-bar {
-  background: var(--orange);
-}
 .skill-measure > span {
   width: 52px;
   flex-shrink: 0;
@@ -358,7 +315,7 @@ legend {
 }
 .skill-measure strong {
   display: block;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'IBM Plex Sans', sans-serif;
   font-size: 14px;
   font-weight: 400;
 }
@@ -409,14 +366,12 @@ legend {
 }
 .jobs-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: 1fr;
+  border-top: 1px solid var(--line);
 }
 .job-card {
-  padding: 23px;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  padding: 24px 0;
+  border-bottom: 1px solid var(--line);
 }
 .company {
   color: var(--muted);
@@ -436,6 +391,7 @@ legend {
   margin-top: 8px;
 }
 .job-description {
+  max-width: 72ch;
   font-size: 15px;
   line-height: 1.6;
   margin-top: 16px;
@@ -459,8 +415,6 @@ legend {
 .example-only {
   font-size: 12px;
   color: var(--muted);
-  border-top: 1px solid var(--line);
-  padding-top: 12px;
 }
 footer {
   display: flex;
@@ -508,19 +462,12 @@ footer a:hover {
     grid-template-columns: 105px minmax(0, 1fr);
     gap: 8px;
   }
-  .top-skill {
-    display: none;
-  }
   .chart-head span:last-child {
     max-width: 105px;
     text-align: right;
   }
   .skill-measure {
     gap: 9px;
-  }
-  .eyebrow {
-    font-size: 11px;
-    letter-spacing: 1px;
   }
   .jobs-heading {
     align-items: start;
@@ -542,12 +489,6 @@ footer a:hover {
   }
   h1 {
     letter-spacing: -1.2px;
-  }
-  .intro > p:last-child {
-    font-size: 16px;
-  }
-  .desktop-break {
-    display: none;
   }
   .workspace {
     grid-template-columns: 1fr;
