@@ -4,6 +4,7 @@
 @import '@fontsource/ibm-plex-sans/latin-500.css';
 @import '@fontsource/ibm-plex-sans/latin-600.css';
 @import '@fontsource/ibm-plex-mono/latin-400.css';
+
 :root {
   font-family: 'IBM Plex Sans', sans-serif;
   color: #182b42;
@@ -11,52 +12,68 @@
   font-synthesis: none;
   --ink: #182b42;
   --blue: #224d88;
+  --blue-dark: #173e75;
   --muted: #5c6b7e;
   --line: #dce4ed;
   --orange: #b8421e;
+  --orange-soft: #fff0e9;
   --white: #fff;
 }
+
 * {
   box-sizing: border-box;
 }
+
 body {
   margin: 0;
 }
+
 a {
   color: inherit;
 }
+
 button,
-input {
+input,
+select {
   font: inherit;
 }
+
 button,
 a,
 label,
-summary {
+summary,
+select {
   -webkit-tap-highlight-color: transparent;
 }
-button {
+
+button,
+select {
   cursor: pointer;
 }
+
 button:disabled {
   cursor: wait;
   opacity: 0.7;
 }
+
 :focus-visible {
   outline: 3px solid #d56b30;
-  outline-offset: 5px;
+  outline-offset: 4px;
 }
+
 p,
 h1,
 h2,
 h3 {
   margin: 0;
 }
+
 .shell {
   max-width: 1240px;
   margin: auto;
   padding: 0 40px;
 }
+
 .topbar {
   display: flex;
   align-items: center;
@@ -65,6 +82,7 @@ h3 {
   min-height: 100px;
   border-bottom: 1px solid var(--line);
 }
+
 .brand {
   display: flex;
   align-items: center;
@@ -75,6 +93,7 @@ h3 {
   font-weight: 600;
   letter-spacing: -1px;
 }
+
 .brand-mark {
   display: grid;
   place-items: center;
@@ -87,6 +106,7 @@ h3 {
   letter-spacing: -3px;
   padding-right: 3px;
 }
+
 .brand-detail {
   font-family: 'IBM Plex Sans', sans-serif;
   letter-spacing: 0;
@@ -97,6 +117,7 @@ h3 {
   padding-left: 14px;
   margin-left: 8px;
 }
+
 .demo-label {
   display: flex;
   align-items: center;
@@ -104,15 +125,18 @@ h3 {
   color: var(--muted);
   font-size: 14px;
 }
+
 .demo-label > span {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--orange);
 }
+
 .intro {
   padding: 45px 0 32px;
 }
+
 .eyebrow {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 12px;
@@ -120,6 +144,7 @@ h3 {
   color: var(--muted);
   line-height: 1.7;
 }
+
 h1 {
   font-family: 'Space Grotesk', sans-serif;
   font-weight: 500;
@@ -128,141 +153,176 @@ h1 {
   letter-spacing: -1.8px;
   margin: 12px 0 15px;
 }
+
 h1 span {
   color: var(--blue);
 }
+
 .intro > p:last-child {
+  max-width: 620px;
   font-size: 17px;
   color: var(--muted);
   line-height: 1.6;
 }
+
 .workspace {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: 280px minmax(0, 1fr);
   gap: 30px;
   align-items: start;
 }
+
 .role-panel {
   padding-top: 8px;
-}
-fieldset {
-  padding: 0;
-  border: 0;
-  margin: 0;
-}
-legend {
-  font-size: 17px;
-  font-weight: 600;
-  margin-bottom: 14px;
-}
-.role-choice {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  border: 1px solid var(--line);
-  padding: 17px 14px;
-  border-radius: 10px;
-  margin-bottom: 10px;
-  cursor: pointer;
-  background: #fff;
-  transition:
-    border-color 0.15s,
-    background 0.15s;
-}
-.role-choice input {
-  accent-color: var(--blue);
-  margin: 0;
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-}
-.role-choice > span {
-  flex: 1;
   min-width: 0;
 }
-.role-choice strong {
-  display: block;
-  font-size: 16px;
+
+.filter-form {
+  display: grid;
+  gap: 9px;
+}
+
+.filter-label,
+.region-field legend {
+  font-size: 14px;
   font-weight: 600;
 }
-.role-choice small {
-  display: block;
-  font-size: 13px;
-  line-height: 1.5;
+
+.filter-form select {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--ink);
+  padding: 11px 12px;
+}
+
+.selection-hint {
   color: var(--muted);
-  margin-top: 2px;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: -2px 0 7px;
 }
-.role-choice.selected {
-  border-color: var(--blue);
-  background: #eaf1fa;
-  box-shadow: inset 3px 0 var(--blue);
+
+.region-field {
+  border: 0;
+  padding: 0;
+  margin: 0 0 7px;
 }
-.role-choice > svg {
-  color: var(--blue);
+
+.region-field legend {
+  padding: 0;
+  margin-bottom: 8px;
 }
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 3px;
+  background: #eef3f9;
+}
+
+.segmented button {
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  padding: 8px 5px;
+  font-size: 14px;
+}
+
+.segmented button.active {
+  background: var(--white);
+  color: var(--ink);
+  box-shadow: 0 1px 3px #182b4218;
+  font-weight: 500;
+}
+
 .explore-button {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
   border: 0;
-  border-radius: 9px;
+  border-radius: 8px;
   background: var(--blue);
   color: #fff;
-  padding: 17px 18px;
-  margin-top: 16px;
+  padding: 14px 16px;
+  margin-top: 7px;
   font-weight: 500;
-  font-size: 16px;
+  font-size: 15px;
 }
+
 .explore-button:hover:not(:disabled) {
-  background: #173e75;
+  background: var(--blue-dark);
 }
+
+.share-note {
+  color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  margin-top: 17px;
+}
+
 .sample-note {
   display: flex;
   align-items: flex-start;
   gap: 9px;
-  margin-top: 23px;
+  margin-top: 20px;
   color: var(--muted);
   font-size: 14px;
   line-height: 1.6;
 }
+
 .sample-note > svg {
   flex-shrink: 0;
   margin-top: 4px;
   color: var(--orange);
 }
+
 .sample-note strong {
   display: block;
   color: var(--ink);
   font-weight: 500;
 }
+
 .method {
-  margin: 21px 0;
+  margin: 19px 0;
   font-size: 14px;
   color: var(--muted);
   line-height: 1.6;
 }
+
 .method summary {
   cursor: pointer;
   color: var(--ink);
 }
+
 .method p {
   padding-top: 12px;
 }
+
 .results-panel {
-  background: #fff;
+  background: var(--white);
   border: 1px solid var(--line);
   border-radius: 14px;
   padding: 26px 30px;
   box-shadow: 0 8px 24px #182b4205;
   min-height: 440px;
+  min-width: 0;
 }
+
 .panel-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
+
 .panel-heading h2 {
   font-family: 'Space Grotesk', sans-serif;
   font-size: 27px;
@@ -270,16 +330,19 @@ legend {
   letter-spacing: -0.8px;
   margin-top: 5px;
 }
+
 .panel-icon {
   font-size: 32px;
   color: var(--blue);
 }
+
 .result-summary {
   font-size: 14px;
   color: var(--muted);
   margin-top: 9px;
   line-height: 1.5;
 }
+
 .chart-head {
   display: flex;
   justify-content: space-between;
@@ -289,11 +352,13 @@ legend {
   font-size: 12px;
   color: var(--muted);
 }
+
 .skill-chart {
   list-style: none;
   margin: 4px 0 0;
   padding: 0;
 }
+
 .skill-chart li {
   display: grid;
   grid-template-columns: minmax(115px, 0.8fr) minmax(0, 1fr);
@@ -301,27 +366,34 @@ legend {
   gap: 16px;
   padding: 10px 0;
 }
+
 .skill-name {
   display: flex;
   align-items: center;
   gap: 9px;
+  min-width: 0;
   font-size: 15px;
   font-weight: 500;
 }
+
 .top-skill {
   font-size: 11px;
   line-height: 1.35;
   font-weight: 400;
   color: var(--orange);
-  background: #fff0e9;
+  background: var(--orange-soft);
   padding: 4px 6px;
   border-radius: 4px;
+  white-space: nowrap;
 }
+
 .skill-measure {
   display: flex;
   align-items: center;
   gap: 15px;
+  min-width: 0;
 }
+
 .skill-measure progress {
   display: block;
   appearance: none;
@@ -332,42 +404,51 @@ legend {
   border-radius: 3px;
   background: #edf1f6;
 }
+
 .skill-measure progress::-webkit-progress-bar {
   background: #edf1f6;
   border-radius: 3px;
 }
+
 .skill-measure progress::-webkit-progress-value {
   background: #416799;
   border-radius: 3px;
 }
+
 .skill-measure progress::-moz-progress-bar {
   background: #416799;
   border-radius: 3px;
 }
+
 .skill-chart li:first-child progress::-webkit-progress-value {
   background: var(--orange);
 }
+
 .skill-chart li:first-child progress::-moz-progress-bar {
   background: var(--orange);
 }
+
 .skill-measure > span {
   width: 52px;
   flex-shrink: 0;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
 .skill-measure strong {
   display: block;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 14px;
   font-weight: 400;
 }
+
 .skill-measure small {
   display: block;
   color: var(--muted);
   font-size: 12px;
   margin-top: 2px;
 }
+
 .chart-caption {
   font-size: 13px;
   line-height: 1.6;
@@ -376,6 +457,23 @@ legend {
   padding-top: 15px;
   margin-top: 12px;
 }
+
+.empty-state {
+  margin-top: 38px;
+  border: 1px dashed #b9c8d8;
+  border-radius: 8px;
+  padding: 25px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.empty-state strong {
+  display: block;
+  color: var(--ink);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
 .error-message {
   background: #fff1ed;
   color: #8a3119;
@@ -386,9 +484,11 @@ legend {
   line-height: 1.5;
   margin-top: 15px;
 }
+
 .jobs-section {
   margin-top: 42px;
 }
+
 .jobs-heading {
   display: flex;
   align-items: end;
@@ -396,37 +496,47 @@ legend {
   gap: 15px;
   margin-bottom: 20px;
 }
+
 .jobs-heading h2 {
+  max-width: 620px;
   font-family: 'Space Grotesk', sans-serif;
   font-size: 24px;
   letter-spacing: -0.6px;
   font-weight: 500;
   margin-top: 4px;
 }
+
 .jobs-heading > span {
   font-size: 13px;
   color: var(--muted);
+  white-space: nowrap;
 }
+
 .jobs-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
+
 .job-card {
+  min-width: 0;
   padding: 23px;
-  background: #fff;
+  background: var(--white);
   border: 1px solid var(--line);
   border-radius: 10px;
 }
+
 .company {
   color: var(--muted);
   font-size: 13px;
 }
+
 .job-card h3 {
   font-size: 18px;
   font-weight: 500;
   margin-top: 6px;
 }
+
 .location {
   display: flex;
   align-items: center;
@@ -435,12 +545,14 @@ legend {
   font-size: 13px;
   margin-top: 8px;
 }
+
 .job-description {
   font-size: 15px;
   line-height: 1.6;
   margin-top: 16px;
   color: #455971;
 }
+
 .tags {
   display: flex;
   flex-wrap: wrap;
@@ -449,6 +561,7 @@ legend {
   padding: 0;
   margin: 16px 0;
 }
+
 .tags li {
   font-size: 12px;
   padding: 4px 8px;
@@ -456,12 +569,14 @@ legend {
   background: #eef3f9;
   color: #36577d;
 }
+
 .example-only {
   font-size: 12px;
   color: var(--muted);
   border-top: 1px solid var(--line);
   padding-top: 12px;
 }
+
 footer {
   display: flex;
   justify-content: space-between;
@@ -472,16 +587,19 @@ footer {
   font-size: 13px;
   color: var(--muted);
 }
+
 footer p {
   color: var(--ink);
   font-weight: 500;
 }
+
 footer p span {
   font-weight: 400;
   display: block;
   color: var(--muted);
   margin-top: 5px;
 }
+
 footer a {
   display: flex;
   align-items: center;
@@ -490,106 +608,124 @@ footer a {
   text-decoration: none;
   line-height: 1.5;
 }
+
 footer a:hover {
   text-decoration: underline;
 }
+
 @media (max-width: 850px) {
   .shell {
     padding: 0 24px;
   }
+
   .workspace {
     grid-template-columns: 255px minmax(0, 1fr);
     gap: 20px;
   }
+
   .results-panel {
     padding: 23px 20px;
   }
+
   .skill-chart li {
     grid-template-columns: 105px minmax(0, 1fr);
     gap: 8px;
   }
+
   .top-skill {
     display: none;
   }
+
   .chart-head span:last-child {
     max-width: 105px;
     text-align: right;
   }
+
   .skill-measure {
     gap: 9px;
   }
+
   .eyebrow {
     font-size: 11px;
     letter-spacing: 1px;
   }
+
   .jobs-heading {
     align-items: start;
     flex-direction: column;
   }
+
+  .jobs-heading > span {
+    white-space: normal;
+  }
 }
+
 @media (max-width: 650px) {
   .shell {
     padding: 0 18px;
   }
+
   .topbar {
     min-height: 78px;
   }
+
   .brand-detail {
     display: none;
   }
+
   .intro {
     padding: 29px 0 23px;
   }
+
   h1 {
     letter-spacing: -1.2px;
   }
+
   .intro > p:last-child {
     font-size: 16px;
   }
-  .desktop-break {
-    display: none;
-  }
+
   .workspace {
     grid-template-columns: 1fr;
     gap: 14px;
   }
-  .role-choice {
-    padding: 12px;
-  }
-  .sample-note {
-    margin-top: 17px;
-  }
-  .method {
-    margin-bottom: 5px;
-  }
+
   .results-panel {
     padding: 22px 18px;
     border-radius: 10px;
     min-height: 0;
   }
+
   .skill-chart li {
     grid-template-columns: 110px minmax(0, 1fr);
   }
+
   .jobs-grid {
     grid-template-columns: 1fr;
   }
+
   .jobs-section {
     margin-top: 30px;
   }
+
   .jobs-heading h2 {
     font-size: 22px;
   }
+
   footer {
     flex-direction: column;
     margin-top: 30px;
   }
+
   .brand {
     font-size: 23px;
   }
+
   .demo-label {
     font-size: 12px;
   }
 }
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;

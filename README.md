@@ -1,10 +1,12 @@
 # GPath — Growth Path
 
-Explorador de requisitos de vacantes: el usuario elige Data Engineer, Backend o DevOps
-y ve qué tecnologías se repiten, junto a las ofertas que sustentan los conteos.
+Explorador de tecnologías mencionadas en puestos de entrada: el usuario elige uno de seis
+roles `Intern`, `Practicante` o `Internship`, filtra por región y revisa las ofertas que
+sustentan los conteos.
 
-**Estado: primera demo funcional.** Contiene 12 ofertas ficticias, señaladas en pantalla.
-Los conteos se calculan en la API. No son vacantes activas ni estadísticas del mercado.
+**Estado: primera demo funcional.** Contiene 24 ofertas ficticias, señaladas en pantalla.
+Los conteos se calculan en la API y admiten región, país y modalidad. No son vacantes activas
+ni estadísticas del mercado.
 Sin registro, documentos personales, Supabase ni base relacional de aplicación.
 
 ## Ejecutar
@@ -16,7 +18,8 @@ npm ci
 npm run dev
 ```
 
-Abrir http://127.0.0.1:5173. La API escucha en 8081; la web consulta `/api/jobs?role=data`.
+Abrir http://127.0.0.1:5173. La API escucha en 8081; la web consulta, por ejemplo,
+`/api/jobs?role=data-intern&region=latam&country=pe&workMode=onsite`.
 
 ```bash
 npm run build
@@ -43,7 +46,4 @@ Conectar ofertas públicas Greenhouse mediante un colector periódico, validar y
 snapshots en OCI Object Storage, y servir el último snapshot válido con fecha y procedencia.
 No recolectar en cada visita ni presentar una muestra acotada como todo el mercado.
 
-Detalles: [Growth Path](docs/growth-path.md).
 Instalación y guía para principiantes: `K3s-Cortex/docs/primer-despliegue.md`.
-El [Release Explorer anterior](docs/legacy-release-explorer.md), sus documentos de
-operación y `oci-storage-plan.md` son históricos y no definen el producto actual.

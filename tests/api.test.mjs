@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { once } from 'node:events'
 import { createApi } from '../server/app.mjs'
+import { roles } from '../server/jobs.mjs'
 
 const release = {
   schemaVersion: 1,
@@ -25,6 +26,7 @@ async function fixture(t, options = {}) {
   )
   return { url: `http://127.0.0.1:${server.address().port}`, logs }
 }
+
 test('health and readiness are independent from OCI', async (t) => {
   const { url } = await fixture(t, {
     archive: {
@@ -38,6 +40,7 @@ test('health and readiness are independent from OCI', async (t) => {
   assert.equal(response.status, 500)
   assert.doesNotMatch(await response.text(), /upstream secret/)
 })
+
 test('release and probe report real runtime metadata, unique IDs and no user data', async (t) => {
   const { url, logs } = await fixture(t)
   const metadata = await (await fetch(url + '/api/release')).json()
@@ -56,6 +59,7 @@ test('release and probe report real runtime metadata, unique IDs and no user dat
   assert.ok(probe.uptimeSeconds >= 0)
   assert.doesNotMatch(JSON.stringify(logs), /secret|private|authorization|127\.0\.0\.1/)
 })
+
 test('read-only routes, HEAD, explicit missing archive and 404', async (t) => {
   const { url } = await fixture(t)
   assert.equal((await fetch(url + '/api/probe', { method: 'POST', body: 'data' })).status, 405)
@@ -67,16 +71,37 @@ test('read-only routes, HEAD, explicit missing archive and 404', async (t) => {
   assert.equal(catalog.status, 'not-configured')
   assert.deepEqual(catalog.releases, [])
 })
-test('jobs endpoint validates roles and returns calculated demo data', async (t) => {
+
+test('jobs endpoint validates roles, filters and calculated demo data', async (t) => {
   const { url } = await fixture(t)
-  for (const role of ['data', 'backend', 'devops']) {
+  for (const role of Object.keys(roles)) {
     const response = await fetch(`${url}/api/jobs?role=${role}`)
     assert.equal(response.status, 200)
     const result = await response.json()
     assert.equal(result.role, role)
     assert.equal(result.mode, 'demo')
     assert.equal(result.total, result.jobs.length)
+    assert.deepEqual(result.filters, { region: 'all', country: 'all', workMode: 'all' })
   }
+  const peru = await (
+    await fetch(url + '/api/jobs?role=backend-intern&region=latam&country=pe&workMode=onsite')
+  ).json()
+  assert.equal(peru.total, 1)
+  assert.equal(peru.jobs[0].country, 'pe')
+  assert.deepEqual(peru.filters, { region: 'latam', country: 'pe', workMode: 'onsite' })
+
+  const remote = await (
+    await fetch(url + '/api/jobs?role=data-intern&region=latam&country=all&workMode=remote')
+  ).json()
+  assert.equal(remote.total, 1)
+  assert.equal(remote.jobs[0].location, 'Remoto · LATAM')
+
+  const unknown = await (
+    await fetch(url + '/api/jobs?role=data-intern&region=latam&country=unknown&workMode=all')
+  ).json()
+  assert.equal(unknown.total, 0)
+
   assert.equal((await fetch(url + '/api/jobs?role=__proto__')).status, 400)
+  assert.equal((await fetch(url + '/api/jobs?role=data-intern&region=global')).status, 400)
   assert.equal((await fetch(url + '/api/jobs', { method: 'POST' })).status, 405)
 })

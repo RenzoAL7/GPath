@@ -2,7 +2,7 @@ import { createServer } from 'node:http'
 import { randomUUID } from 'node:crypto'
 import { parseRelease } from '../shared/release.mjs'
 import { createArchive } from './archive.mjs'
-import { demoAnalysis, roles } from './jobs.mjs'
+import { demoAnalysis, parseJobFilters, roles } from './jobs.mjs'
 
 export function createApi({
   release: metadata,
@@ -43,9 +43,16 @@ export function createApi({
       try {
         switch (path) {
           case '/api/jobs': {
-            const role = new URL(req.url, 'http://localhost').searchParams.get('role') || 'data'
-            if (!Object.hasOwn(roles, role)) return send(400, { error: 'Selecciona Data Engineer, Backend o DevOps.' })
-            return send(200, demoAnalysis(role))
+            const requestUrl = new URL(req.url, 'http://localhost')
+            const role = requestUrl.searchParams.get('role') || 'data-intern'
+            if (!Object.hasOwn(roles, role))
+              return send(400, { error: 'Selecciona uno de los puestos disponibles.' })
+            try {
+              return send(200, demoAnalysis(role, parseJobFilters(requestUrl.searchParams)))
+            } catch (error) {
+              if (error instanceof RangeError) return send(400, { error: error.message })
+              throw error
+            }
           }
           case '/healthz':
           case '/readyz':
