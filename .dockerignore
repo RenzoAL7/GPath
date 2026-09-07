@@ -5,4 +5,10 @@ dist
 .DS_Store
 *.log
 README.md
-
+.env
+.env.*
+!.env.example
+tests
+test-results
+artifacts
+docs

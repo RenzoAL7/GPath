@@ -1,4 +1,4 @@
-name: GitPath CI/CD
+name: GPath delivery
 
 on:
   pull_request:
@@ -8,171 +8,182 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: gitpath-${{ github.workflow }}-${{ github.ref }}
+  group: gpath-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/renzoal7/gitpath
 
 permissions:
   contents: read
 
 jobs:
   validate:
-    name: Validate frontend
+    name: Test API and interface
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
+    timeout-minutes: 15
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Audit production dependencies
-        run: npm audit --omit=dev --audit-level=high
-
-      - name: Build frontend
+      - run: npm ci
+      - run: npm audit --audit-level=high
+      - run: npm test
+      - name: Build once with traceable metadata
         env:
-          VITE_SUPABASE_URL: https://dikckiooelpyqezzjvgi.supabase.co
-          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_C-kci7h-1BnyhnUmOBYI_g_NxGFznnf
+          RELEASE_REVISION: ${{ github.sha }}
+          RELEASE_RUN_ID: ${{ github.run_id }}
+          RELEASE_DIRTY: 'false'
         run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Keep the exact tested metadata for both containers
+        uses: actions/upload-artifact@v4
+        with:
+          name: gpath-release
+          path: public/release.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-evidence
+          path: |
+            artifacts/
+            test-results/
+          retention-days: 7
 
-      - name: Test simulator behavior
-        run: npm test
-
-  container:
-    name: Build container
+  smoke:
+    name: Test both runtime containers
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: gpath-release
+          path: public
+      - run: docker compose up --build -d --wait --wait-timeout 60
+      - run: node scripts/smoke.mjs
+      - name: Container diagnostics
+        if: failure()
+        run: docker compose logs --tail 60
+      - name: Stop test containers
+        if: always()
+        run: docker compose down
+
+  container:
+    name: Package amd64 and arm64
+    needs: smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: write
-      attestations: write
-      id-token: write
-
+    outputs:
+      web-digest: ${{ steps.web.outputs.digest }}
+      api-digest: ${{ steps.api.outputs.digest }}
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: gpath-release
+          path: public
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to the existing registry
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract image metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,format=long,prefix=sha-
-            type=raw,value=main,enable=${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-
-      - name: Build and publish image
+      - name: Web image
+        id: web
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile
-          build-args: |
-            VITE_SUPABASE_URL=https://dikckiooelpyqezzjvgi.supabase.co
-            VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_C-kci7h-1BnyhnUmOBYI_g_NxGFznnf
+          target: web
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          provenance: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          sbom: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+          tags: ghcr.io/renzoal7/gitpath:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/RenzoAL7/GPath
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+          provenance: true
+          sbom: true
+      - name: API image
+        id: api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: api
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+          tags: ghcr.io/renzoal7/gitpath-api:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/RenzoAL7/GPath
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+          provenance: true
+          sbom: true
 
   update-gitops:
-    name: Promote image through GitOps
+    name: Propose a reviewed GitOps promotion
     needs: container
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-
     steps:
-      - name: Checkout K3s-Cortex
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Checkout infrastructure
         uses: actions/checkout@v4
         with:
           repository: RenzoAL7/K3s-Cortex
           token: ${{ secrets.CORTEX_REPO_TOKEN }}
           path: cortex
-          fetch-depth: 1
-
-      - name: Pin the released image SHA
-        working-directory: cortex
+      - name: Pin BOTH published digests and activate the new overlay together
         env:
-          IMAGE_TAG: sha-${{ github.sha }}
+          WEB_DIGEST: ${{ needs.container.outputs.web-digest }}
+          API_DIGEST: ${{ needs.container.outputs.api-digest }}
         run: |
-          MANIFEST="apps/gitpath/overlays/prod/kustomization.yaml"
-          test -f "$MANIFEST"
-          sed -i -E "s|^    newTag:.*$|    newTag: ${IMAGE_TAG}|" "$MANIFEST"
-          grep -n "newTag:" "$MANIFEST"
-          git diff --check
-
-      - name: Open or update GitOps pull request
-        id: promotion
+          node scripts/promote.mjs cortex "$WEB_DIGEST" "$API_DIGEST"
+          git -C cortex diff --check
+      - name: Render the desired state without contacting the cluster
+        run: kubectl kustomize cortex/apps/gpath/overlays/growth > /dev/null
+      - name: Open or update promotion PR; no automatic merge
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.CORTEX_REPO_TOKEN }}
           path: cortex
-          add-paths: apps/gitpath/overlays/prod/kustomization.yaml
-          # Reuse one promotion branch so a new release updates the pending PR
-          # instead of creating a pile of competing deployment PRs.
-          branch: automation/gitpath-prod
+          add-paths: |
+            apps/gpath/overlays/growth/kustomization.yaml
+            clusters/rnz-prod/gpath-application.yaml
+          branch: automation/gpath-prod
           delete-branch: true
           base: main
-          commit-message: "chore(gitpath): deploy sha-${{ github.sha }}"
-          title: "chore(gitpath): deploy sha-${{ github.sha }}"
+          commit-message: 'chore(gpath): promote ${{ github.sha }}'
+          title: 'chore(gpath): promote web + API ${{ github.sha }}'
           body: |
-            Automated image promotion from `RenzoAL7/Gitpath`.
+            Both images were built after unit, browser and container tests passed.
 
-            - Source commit: `${{ github.sha }}`
-            - Image: `ghcr.io/renzoal7/gitpath:sha-${{ github.sha }}`
-            - Argo CD application: `gitpath-prod`
+            - Source: https://github.com/RenzoAL7/GPath/commit/${{ github.sha }}
+            - Workflow: https://github.com/RenzoAL7/GPath/actions/runs/${{ github.run_id }}
+            - Web: `ghcr.io/renzoal7/gitpath@${{ needs.container.outputs.web-digest }}`
+            - API: `ghcr.io/renzoal7/gitpath-api@${{ needs.container.outputs.api-digest }}`
 
-            This PR is merged automatically after the release image is published.
-
-      - name: Merge GitOps promotion
-        if: steps.promotion.outputs.pull-request-number != ''
-        working-directory: cortex
-        env:
-          GH_TOKEN: ${{ secrets.CORTEX_REPO_TOKEN }}
-          PR_NUMBER: ${{ steps.promotion.outputs.pull-request-number }}
-          PR_HEAD_SHA: ${{ steps.promotion.outputs.pull-request-head-sha }}
-        run: |
-          for attempt in 1 2 3; do
-            if gh pr merge "$PR_NUMBER" \
-              --repo RenzoAL7/K3s-Cortex \
-              --squash \
-              --delete-branch \
-              --match-head-commit "$PR_HEAD_SHA"; then
-              exit 0
-            fi
-
-            if [ "$attempt" -lt 3 ]; then
-              echo "GitHub is still evaluating the promotion PR; retrying in 5 seconds."
-              sleep 5
-            fi
-          done
-
-          echo "The GitOps promotion PR could not be merged automatically."
-          exit 1
+            Review both image pins, registry access and ingress routing before merging.
+            The first promotion also switches gpath-prod to the growth overlay.
+            Argo CD reconciles after merge; this build does not assert deployment success.
+            Rollback: revert this promotion commit in K3s-Cortex.

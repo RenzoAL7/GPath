@@ -3,3 +3,10 @@ dist
 .DS_Store
 *.local
 *.tsbuildinfo
+.env
+.env.*
+!.env.example
+public/release.json
+public/licenses/
+artifacts/
+test-results/
