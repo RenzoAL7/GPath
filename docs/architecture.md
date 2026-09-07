@@ -13,29 +13,32 @@ a componentes que no consulta.
 
 ## Responsabilidades
 
-| Componente        | Hace                                                             | No hace                                                           |
-| ----------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Web (Nginx/React) | Sirve assets, muestra metadatos, permite una petición GET        | No contiene credenciales ni modifica infraestructura              |
-| API (Node.js)     | Informa de su build, responde al probe y lee un catálogo acotado | No escribe datos, no ejecuta comandos ni accede a Kubernetes      |
-| GitHub Actions    | Prueba, empaqueta y propone los digests en una PR                | No aplica YAML ni accede a la VM por SSH                          |
-| K3s-Cortex        | Versiona el estado deseado y su revisión                         | No construye el código de la aplicación                           |
-| Argo CD           | Reconcilia después del merge                                     | No se controla desde la web pública                               |
-| Bucket opcional   | Guarda registros JSON de builds y un índice                      | No almacena cuentas, comentarios o datos aportados por visitantes |
+| Componente        | Hace                                                               | No hace                                                           |
+| ----------------- | ------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| Web (Nginx/React) | Sirve assets, muestra metadatos, permite una petición GET          | No contiene credenciales ni modifica infraestructura              |
+| API (Node.js)     | Informa de su build, consulta feeds públicos y calcula frecuencias | No escribe datos, no ejecuta comandos ni accede a Kubernetes      |
+| GitHub Actions    | Prueba, empaqueta y propone los digests en una PR                  | No aplica YAML ni accede a la VM por SSH                          |
+| K3s-Cortex        | Versiona el estado deseado y su revisión                           | No construye el código de la aplicación                           |
+| Argo CD           | Reconcilia después del merge                                       | No se controla desde la web pública                               |
+| Bucket opcional   | Guarda registros JSON de builds y un índice                        | No almacena cuentas, comentarios o datos aportados por visitantes |
 
 ## API mínima
 
-| Ruta            | Respuesta                                                      | Dependencia externa       |
-| --------------- | -------------------------------------------------------------- | ------------------------- |
-| `/healthz`      | El proceso HTTP responde                                       | Ninguna                   |
-| `/readyz`       | La configuración local es válida y puede atender tráfico       | Ninguna                   |
-| `/api/release`  | Metadatos grabados al construir y entorno declarado            | Ninguna                   |
-| `/api/probe`    | UUID, hora del servidor, revisión, uptime del proceso          | Ninguna                   |
-| `/api/releases` | Índice opcional: connected, stale, unavailable, not-configured | OCI, solo si se configura |
+| Ruta            | Respuesta                                                      | Dependencia externa                    |
+| --------------- | -------------------------------------------------------------- | -------------------------------------- |
+| `/healthz`      | El proceso HTTP responde                                       | Ninguna                                |
+| `/readyz`       | La configuración local es válida y puede atender tráfico       | Ninguna                                |
+| `/api/release`  | Metadatos grabados al construir y entorno declarado            | Ninguna                                |
+| `/api/probe`    | UUID, hora del servidor, revisión, uptime del proceso          | Ninguna                                |
+| `/api/releases` | Índice opcional: connected, stale, unavailable, not-configured | OCI, solo si se configura              |
+| `/api/jobs`     | Ofertas públicas normalizadas y tecnologías por puesto         | Greenhouse Job Board, caché en memoria |
 
-Solo GET y HEAD. Los errores no incluyen trazas, claves ni URLs privadas. No se refleja
-el contenido recibido. La API registra ID, status y duración; no URL, IP, cookies ni
-Authorization. No existe una base de datos de peticiones. Los logs de otros componentes
-(por ejemplo el futuro LB) se deben configurar y revisar por separado.
+Solo GET y HEAD. Los errores no incluyen trazas, claves ni URLs privadas. Las
+descripciones de ofertas se normalizan y truncan antes de enviarse al navegador; no se
+refleja contenido arbitrario de las solicitudes de los visitantes. La API registra ID,
+status y duración; no URL, IP, cookies ni Authorization. No existe una base de datos de
+peticiones. Los logs de otros componentes (por ejemplo el futuro LB) se deben configurar
+y revisar por separado.
 
 La readiness no depende del bucket: su caída no debe expulsar todas las réplicas del
 Service ni provocar reinicios. Liveness comprueba el proceso, no una dependencia externa.
@@ -69,11 +72,16 @@ no certifica todas las réplicas, Argo CD, los nodos o la disponibilidad histór
 
 ## Datos y credenciales
 
-El bucket permanece privado. La API admite una URL HTTPS fija de Object Storage,
+Para el catálogo opcional de releases, el bucket permanece privado. La API admite una URL HTTPS fija de Object Storage,
 servidor a servidor, idealmente una PAR de solo lectura de **un único objeto**.
 No admite URLs enviadas por usuarios, ni sigue redirecciones. Caché por proceso
 de 60 s, timeout de 4 s, payload máximo de 128 KiB y hasta 50 registros.
 Un fallo muestra la última copia con aviso si existe; si no, muestra indisponibilidad.
+
+La consulta de ofertas no usa el bucket ni credenciales: el servidor llama a una
+allowlist de boards públicos de Greenhouse, limita la cantidad por fuente y conserva
+el resultado en memoria durante quince minutos. No se acepta una URL de proveedor
+enviada por el navegador.
 
 Una PAR es un secreto. No debe publicarse ni llevar prefijo `VITE_`. En k3s se
 inyecta con un Secret opcional; no se almacena el valor en Git. Un Secret de
@@ -88,8 +96,10 @@ retención WORM: otro principal con permisos de escritura podría modificarlos.
 ## Qué se deja fuera
 
 Sin Supabase, autenticación, base de datos relacional, volumen persistente para datos
-de aplicación, Redis, Kafka, Functions o modelos. No usar cada servicio disponible
-es una decisión de alcance. El proyecto MLOps puede construirse después, independiente.
+de aplicación, Redis, Kafka, Functions o modelos. Las ofertas públicas se consultan
+con un allowlist de boards y una caché de quince minutos. No usar cada servicio
+disponible es una decisión de alcance. El proyecto MLOps puede construirse después,
+independiente.
 
 No hay SLO, monitoreo continuo, rate limiting distribuido ni alta disponibilidad de
 nodo. Antes de abrirlo a Internet: revisar TLS, NSGs/firewall, health checks del LB,

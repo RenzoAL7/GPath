@@ -80,3 +80,32 @@ test('jobs endpoint validates roles and returns calculated demo data', async (t)
   assert.equal((await fetch(url + '/api/jobs?role=__proto__')).status, 400)
   assert.equal((await fetch(url + '/api/jobs', { method: 'POST' })).status, 405)
 })
+
+test('jobs endpoint can serve a live provider and hides provider failures', async (t) => {
+  const live = {
+    role: 'data',
+    label: 'Data Engineer',
+    mode: 'live',
+    collectedAt: '2026-09-07T00:00:00.000Z',
+    total: 1,
+    skills: [],
+    jobs: [],
+  }
+  const { url } = await fixture(t, { jobs: { read: async () => live } })
+  const response = await fetch(url + '/api/jobs?role=data')
+  assert.equal(response.status, 200)
+  assert.equal((await response.json()).mode, 'live')
+
+  const failed = await fixture(t, {
+    jobs: {
+      read: async () => {
+        throw new Error('provider secret')
+      },
+    },
+  })
+  const failure = await fetch(failed.url + '/api/jobs?role=data')
+  assert.equal(failure.status, 502)
+  assert.deepEqual(await failure.json(), {
+    error: 'No se pudieron consultar las ofertas públicas. Inténtalo de nuevo.',
+  })
+})

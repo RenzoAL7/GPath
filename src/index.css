@@ -90,18 +90,21 @@ h3 {
   padding-left: 14px;
   margin-left: 8px;
 }
-.demo-label {
+.status-label {
   display: flex;
   align-items: center;
   gap: 8px;
   color: var(--muted);
   font-size: 14px;
 }
-.demo-label > span {
+.status-label > span {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: var(--orange);
+}
+.status-label.is-live > span {
+  background: #2e7a58;
 }
 .intro {
   padding: 32px 0;
@@ -112,6 +115,12 @@ h1 {
   font-size: clamp(26px, 3vw, 36px);
   line-height: 1.12;
   letter-spacing: -1px;
+}
+.intro-copy {
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.5;
+  margin-top: 10px;
 }
 .workspace {
   display: grid;
@@ -416,6 +425,28 @@ legend {
   font-size: 12px;
   color: var(--muted);
 }
+.job-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+.job-meta .example-only {
+  margin: 0;
+}
+.job-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.job-link:hover {
+  text-decoration: underline;
+}
 footer {
   display: flex;
   justify-content: space-between;
@@ -527,7 +558,7 @@ footer a:hover {
   .brand {
     font-size: 23px;
   }
-  .demo-label {
+  .status-label {
     font-size: 12px;
   }
 }

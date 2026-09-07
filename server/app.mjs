@@ -8,6 +8,7 @@ export function createApi({
   release: metadata,
   environment = 'local',
   archive = createArchive(),
+  jobs = { read: async (role) => demoAnalysis(role) },
   log = () => {},
 }) {
   const release = parseRelease(metadata)
@@ -44,8 +45,15 @@ export function createApi({
         switch (path) {
           case '/api/jobs': {
             const role = new URL(req.url, 'http://localhost').searchParams.get('role') || 'data'
-            if (!Object.hasOwn(roles, role)) return send(400, { error: 'Selecciona Data Engineer, Backend o DevOps.' })
-            return send(200, demoAnalysis(role))
+            if (!Object.hasOwn(roles, role))
+              return send(400, { error: 'Selecciona Data Engineer, Backend o DevOps.' })
+            try {
+              return send(200, await jobs.read(role))
+            } catch {
+              return send(502, {
+                error: 'No se pudieron consultar las ofertas públicas. Inténtalo de nuevo.',
+              })
+            }
           }
           case '/healthz':
           case '/readyz':

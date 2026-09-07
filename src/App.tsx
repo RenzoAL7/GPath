@@ -1,12 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import { FiArrowRight, FiCheck, FiInfo, FiMapPin } from 'react-icons/fi'
+import { FiArrowRight, FiCheck, FiExternalLink, FiInfo, FiMapPin } from 'react-icons/fi'
 type Role = 'data' | 'backend' | 'devops'
 type Analysis = {
   role: Role
   label: string
   total: number
-  mode: 'demo'
-  collectedAt: null
+  mode: 'live' | 'demo'
+  collectedAt: string | null
+  source?: string
+  sourceCount?: number
+  sourceNames?: string[]
+  sampleLimit?: number
+  partial?: boolean
   skills: { name: string; count: number; percent: number }[]
   jobs: {
     id: string
@@ -15,6 +20,9 @@ type Analysis = {
     location: string
     description: string
     skills: string[]
+    url?: string
+    source?: string
+    updatedAt?: string | null
   }[]
 }
 const choices: { id: Role; name: string; description: string }[] = [
@@ -28,6 +36,16 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const request = useRef<AbortController | null>(null)
+  const live = result?.mode !== 'demo'
+
+  function formatDate(value: string | null | undefined) {
+    if (!value || !Number.isFinite(Date.parse(value))) return null
+    return new Intl.DateTimeFormat('es-PE', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(value))
+  }
+
   async function explore(selected: Role) {
     request.current?.abort()
     const controller = new AbortController()
@@ -41,7 +59,7 @@ export default function App() {
       const payload: Analysis = await response.json()
       if (
         payload.role !== selected ||
-        payload.mode !== 'demo' ||
+        !['live', 'demo'].includes(payload.mode) ||
         !Array.isArray(payload.jobs) ||
         !Array.isArray(payload.skills)
       )
@@ -69,13 +87,16 @@ export default function App() {
           <img className="brand-mark" src="/gpath-mark.svg" width="34" height="34" alt="" />
           GPath<span className="brand-detail">Growth Path</span>
         </a>
-        <span className="demo-label">
-          <span aria-hidden="true" /> Demo
+        <span className={`status-label ${live ? 'is-live' : 'is-demo'}`}>
+          <span aria-hidden="true" /> {live ? 'Ofertas públicas' : 'Demo local'}
         </span>
       </header>
       <main>
         <section className="intro" aria-labelledby="page-title">
           <h1 id="page-title">Requisitos por puesto</h1>
+          <p className="intro-copy">
+            Consulta ofertas públicas y compara las tecnologías que mencionan.
+          </p>
         </section>
         <div className="workspace">
           <aside className="role-panel">
@@ -115,16 +136,32 @@ export default function App() {
             <div className="sample-note">
               <FiInfo aria-hidden="true" />
               <p>
-                <strong>Datos de ejemplo.</strong> Las 12 ofertas son ficticias. No son vacantes
-                disponibles para postular.
+                {live && result ? (
+                  <>
+                    <strong>Ofertas públicas.</strong> Se consultaron {result.sourceCount || 0}{' '}
+                    fuentes
+                    {formatDate(result.collectedAt) &&
+                      ` · actualizado ${formatDate(result.collectedAt)}`}
+                    {result.partial && ' · una fuente no respondió'}.
+                  </>
+                ) : result ? (
+                  <>
+                    <strong>Demo local.</strong> Las ofertas son ficticias y no están disponibles
+                    para postular.
+                  </>
+                ) : (
+                  <>
+                    <strong>Ofertas públicas.</strong> Consultando fuentes públicas…
+                  </>
+                )}
               </p>
             </div>
             <details className="method">
               <summary>Cómo se calcula</summary>
               <p>
-                Cada tecnología cuenta una vez por oferta, aunque se mencione varias veces. El
-                porcentaje se calcula sobre las ofertas del puesto elegido, no sobre todo el
-                mercado.
+                {live
+                  ? `Cada tecnología cuenta una vez por oferta, aunque se mencione varias veces. La muestra se limita a ${result?.sampleLimit || 6} ofertas por fuente y no representa todo el mercado.`
+                  : 'Cada tecnología cuenta una vez por oferta, aunque se mencione varias veces. Esta demo usa una muestra fija y no representa todo el mercado.'}
               </p>
             </details>
           </aside>
@@ -142,9 +179,9 @@ export default function App() {
             )}
             <p className="result-summary" role="status">
               {loading
-                ? 'Cargando requisitos…'
+                ? 'Consultando ofertas públicas…'
                 : result
-                  ? `${result.total} ofertas de ejemplo`
+                  ? `${result.total} ofertas ${live ? 'encontradas' : 'de ejemplo'}`
                   : 'Pulsa «Ver requisitos» para reintentar.'}
             </p>
             {result && (
@@ -175,7 +212,8 @@ export default function App() {
                 </ol>
                 {result.total === 0 && <p>No hay ofertas para este puesto en la muestra.</p>}
                 <p className="chart-caption">
-                  Una misma oferta puede mencionar varias tecnologías.
+                  Una misma oferta puede mencionar varias tecnologías; los porcentajes no tienen que
+                  sumar 100%.
                 </p>
               </>
             )}
@@ -185,10 +223,10 @@ export default function App() {
           <section className="jobs-section" aria-labelledby="jobs-title">
             <div className="jobs-heading">
               <div>
-                <h2 id="jobs-title">Ofertas de ejemplo</h2>
+                <h2 id="jobs-title">{live ? 'Ofertas consultadas' : 'Ofertas de ejemplo'}</h2>
               </div>
               <span>
-                {result.total} ejemplos · {result.label}
+                {result.total} ofertas · {result.label}
               </span>
             </div>
             <div className="jobs-grid">
@@ -206,7 +244,23 @@ export default function App() {
                       <li key={skill}>{skill}</li>
                     ))}
                   </ul>
-                  <p className="example-only">Oferta ficticia</p>
+                  <div className="job-meta">
+                    {job.url && (
+                      <a className="job-link" href={job.url} target="_blank" rel="noreferrer">
+                        Ver oferta original <FiExternalLink aria-hidden="true" />
+                      </a>
+                    )}
+                    <p className="example-only">
+                      {live
+                        ? [
+                            job.source,
+                            formatDate(job.updatedAt) && `actualizada ${formatDate(job.updatedAt)}`,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')
+                        : 'Oferta ficticia'}
+                    </p>
+                  </div>
                 </article>
               ))}
             </div>
