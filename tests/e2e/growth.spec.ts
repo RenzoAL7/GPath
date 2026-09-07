@@ -7,7 +7,7 @@ test('demo calculates each role and shows the supporting examples', async ({ pag
   const iconPath = await page.locator('link[rel="icon"]').getAttribute('href')
   await expect(mark).toHaveAttribute('src', iconPath!)
   await expect(mark).toHaveJSProperty('naturalWidth', 40)
-  await expect(page.getByText('Datos de ejemplo.')).toBeVisible()
+  await expect(page.getByText('Demo local.')).toBeVisible()
   await expect(
     page.getByRole('heading', { name: 'Data Engineer', exact: true }).first(),
   ).toBeVisible()

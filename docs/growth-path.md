@@ -1,9 +1,10 @@
-# Growth Path — primera demo
+# Growth Path — ofertas públicas
 
 Una pantalla: elegir Data Engineer, Backend o DevOps y explorar requisitos.
-`GET /api/jobs?role=data|backend|devops` calcula las frecuencias sobre 12 ofertas
-ficticias (4 por rol). La UI y la API identifican la muestra como demo; no son ofertas
-activas, no hay links de postulación y no se inventa una fecha de recolección.
+`GET /api/jobs?role=data|backend|devops` consulta feeds públicos de Greenhouse,
+selecciona una muestra acotada por título, descarga el detalle de cada puesto y
+calcula las tecnologías que aparecen en su descripción. Cada oferta conserva el
+enlace original para comprobarla o postular directamente en el portal de la empresa.
 
 ## Verificación
 
@@ -16,25 +17,35 @@ npm run test:e2e
 npm run dev
 ```
 
-La demo local corre en http://127.0.0.1:5173, con API en 8081. Docker separa web
-y API; k3s usa los manifiestos de K3s-Cortex. No se necesita Supabase, registro de
-usuarios ni base relacional. Los endpoints de release son operativos; no son la página.
+La ejecución local por defecto corre en http://127.0.0.1:5173, con API en 8081 y
+modo live. Docker separa web y API; su compose usa demo para pruebas deterministas;
+k3s usa los manifiestos de K3s-Cortex. No se necesita Supabase, registro de usuarios
+ni base relacional. Los endpoints de release son operativos; no son la página.
 
-## Próximo paso, aún NO implementado
+## Fuente y límites
 
-CronJob con empresas permitidas y API pública Greenhouse → validación y deduplicación
-→ snapshot versionado en OCI Object Storage → API que lee el último snapshot válido.
-No disparar el colector por cada visita. Registrar fecha, empresas y tamaño de muestra;
-ante fallo conservar el último snapshot y marcarlo como antiguo. No presentar los
-porcentajes como estadísticas de todo el mercado laboral ni inferir elegibilidad en Perú.
+La primera versión real usa cuatro boards públicos configurados por defecto: Stripe,
+Vercel, Cloudflare y Datadog. Se puede cambiar la lista con `GREENHOUSE_BOARDS`, sin
+exponer credenciales. Greenhouse documenta que los endpoints GET de Job Board son
+[públicos](https://docs.greenhouse.io/job-board.html) y que `content` incluye la
+descripción del puesto.
+
+El API consulta como máximo seis ofertas por fuente y guarda el resultado en memoria
+durante quince minutos. Si una fuente falla, conserva las demás y lo indica en la
+respuesta; si todas fallan, devuelve un error y no inventa resultados. La muestra no
+es una fotografía de todo el mercado laboral y los porcentajes no miden elegibilidad.
+
+La caché en memoria es suficiente para esta VM y esta primera versión. OCI Object
+Storage queda como una siguiente mejora si necesitamos histórico, auditoría o un
+refresco programado; no se añade una base de datos solo para servir esta página.
 
 ## GitOps
 
 Mantener las imágenes `ghcr.io/renzoal7/gitpath` y `gitpath-api` evita mover paquetes.
-La fuente se llama ahora `RenzoAL7/GPath`. Publicar primero los nuevos archivos Cortex
-y después la CI de GPath. El workflow abre un PR de promoción por digest; no lo fusiona.
-La demo con imágenes importadas es una prueba manual, no una entrega GitOps verificada.
+La fuente se llama ahora `RenzoAL7/GPath`. Al fusionar el cambio de la aplicación,
+la CI publica ambas imágenes y abre un PR de promoción por digest en Cortex; ese PR
+requiere revisión antes de que Argo CD sincronice. La demo con imágenes importadas
+es una prueba manual, no una entrega GitOps verificada.
 
 Los documentos del antiguo Release Explorer y `oci-storage-plan.md` son históricos;
-no definen el nuevo producto. Antes de este pivot se guardó una copia privada temporal
-del trabajo local para no perder los cambios sin commit.
+no definen el nuevo producto.

@@ -6,18 +6,21 @@ description: Editar o revisar la interfaz y los textos de GPath — Growth Path.
 # Diseño de GPath
 
 GPath permite elegir un puesto y consultar qué tecnologías aparecen en una muestra
-de ofertas. Es una herramienta de una sola página, no una landing de marketing ni
-una explicación del repositorio. El público son personas que consultan requisitos
-laborales; no necesitan entender la infraestructura.
+de ofertas públicas. Es una herramienta de una sola página, no una landing de
+marketing ni una explicación del repositorio. El público son personas que consultan
+requisitos laborales; no necesitan entender la infraestructura.
 
 ## Texto
 
-- Usar nombres concretos: «Puesto», «Ver requisitos», «Ofertas de ejemplo».
+- Usar nombres concretos: «Puesto», «Ver requisitos», «Ofertas consultadas».
 - Quitar lemas, invitaciones redundantes y títulos decorativos en mayúsculas.
   Evitar «El siguiente paso, con contexto» y «De dónde sale el resultado».
 - No mostrar API, pods, GitOps ni futuros planes técnicos en el recorrido principal.
-- Mantener explícito el origen ficticio de la demo. No inventar empresas reales,
-  vacantes activas, fechas de recolección o cifras de usuarios para darle credibilidad.
+- Mantener visible el origen público y la fecha de consulta en live. El modo demo debe
+  marcar sus datos como ficticios. No inventar empresas, vacantes activas, fechas de
+  recolección o cifras de usuarios para darle credibilidad.
+- Las ofertas live deben conservar un enlace a la publicación original; no convertir
+  un conteo de muestra en una recomendación de contratación.
 - Los errores deben decir qué falló y cómo reintentar. Si se conservan resultados
   anteriores, identificarlos; no reemplazar errores por datos de ejemplo silenciosos.
 

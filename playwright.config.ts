@@ -26,7 +26,13 @@ export default defineConfig({
         {
           command: 'npm run dev:api',
           url: 'http://127.0.0.1:8081/healthz',
-          env: { HOST: '127.0.0.1', PORT: '8081', RUNTIME_ENV: 'local', RELEASE_CATALOG_URL: '' },
+          env: {
+            HOST: '127.0.0.1',
+            PORT: '8081',
+            RUNTIME_ENV: 'local',
+            JOB_MODE: 'demo',
+            RELEASE_CATALOG_URL: '',
+          },
           reuseExistingServer: !process.env.CI,
         },
         {
