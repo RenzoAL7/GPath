@@ -1,8 +1,15 @@
 # Third-party notices
 
+## Release Explorer
+
+Usa React, React DOM, React Icons y las fuentes Space Grotesk, IBM Plex Sans e
+IBM Plex Mono empaquetadas con Fontsource. La compilación copia sus licencias
+desde los paquetes instalados a `public/licenses/` y las distribuye junto al sitio.
+Las fuentes se sirven localmente; no se solicitan a Google Fonts.
+
 ## Learn Git Branching
 
-El concepto de un sandbox visual organizado en niveles de GitPath está inspirado en [Learn Git Branching](https://github.com/pcottle/learnGitBranching), creado por Peter Cottle. GitPath no incorpora su código fuente; conserva esta atribución para reconocer el proyecto de referencia y su licencia.
+El antiguo sandbox visual de GitPath estaba inspirado en [Learn Git Branching](https://github.com/pcottle/learnGitBranching), creado por Peter Cottle. El pivot Release Explorer ya no incluye ese simulador; se conserva esta atribución histórica y su licencia.
 
 MIT License
 

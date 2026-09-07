@@ -1,0 +1,33 @@
+name: gpath
+services:
+  api:
+    image: gpath-api:local
+    build:
+      context: .
+      target: api
+    environment:
+      RUNTIME_ENV: container
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    cpus: 0.5
+  web:
+    image: gpath-web:local
+    build:
+      context: .
+      target: web
+    ports:
+      - '127.0.0.1:8080:8080'
+    volumes:
+      - ./docker/api-route.compose.conf:/etc/nginx/api-route.conf:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    cpus: 0.5
+    depends_on:
+      api:
+        condition: service_healthy

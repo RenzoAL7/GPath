@@ -1,74 +1,49 @@
-# GitPath
+# GPath — Growth Path
 
-GitPath es una ruta visual en español para aprender Git desde cero. Empieza antes del primer comando —instalación en Windows, macOS o Linux—, explica para qué sirve GitHub Desktop, construye el modelo mental de Git con escenas y termina en un laboratorio donde cada comando mueve un grafo de commits en tiempo real.
+Explorador de requisitos de vacantes: el usuario elige Data Engineer, Backend o DevOps
+y ve qué tecnologías se repiten, junto a las ofertas que sustentan los conteos.
 
-## Recorrido
+**Estado: primera demo funcional.** Contiene 12 ofertas ficticias, señaladas en pantalla.
+Los conteos se calculan en la API. No son vacantes activas ni estadísticas del mercado.
+Sin registro, documentos personales, Supabase ni base relacional de aplicación.
 
-| Etapa | Ruta | Qué aprende la persona |
-| --- | --- | --- |
-| 1. Preparar | `/instalar` | Cómo instalar y comprobar Git según su sistema, y cómo configurar nombre y correo. |
-| 2. Usar una interfaz | `/github-desktop` | Para qué sirve GitHub Desktop, cómo leer un diff y cuándo usar Git Bash. |
-| 3. Crear commits | `/commits` | Cómo agrupar archivos de funcionalidad, hotfix, documentación, refactor, dependencias y CI. |
-| 4. Entender | `/aprender` | Qué hacen `commit`, `push`, `pull --rebase`, `merge`, `stash` y `revert` sobre el grafo. |
-| 5. Practicar | `/ejercicios` | Cinco niveles básicos con commits, ramas, merge, `HEAD` separado y rebase. |
-| Progreso | `/progreso` | Checks de preparación, escenas vistas y niveles completados, guardados localmente. |
+## Ejecutar
 
-Las páginas de instalación enlazan a las fuentes oficiales de [Git](https://git-scm.com/install/) y [GitHub Desktop](https://docs.github.com/es/desktop/installing-and-authenticating-to-github-desktop/installing-github-desktop). GitHub Desktop se presenta como aplicación oficialmente disponible para Windows y macOS; en Linux se recomienda continuar con Git en terminal o una interfaz alternativa.
-
-## Laboratorio visual
-
-El laboratorio no toca repositorios reales. Su motor determinista interpreta un conjunto acotado de comandos, actualiza ramas y `HEAD`, crea commits con sus padres y dibuja el resultado:
-
-- `git commit -m "…"`
-- `git branch <nombre>`
-- `git switch <rama>`
-- `git merge <rama>`
-- `git switch --detach <commit>`
-- `git rebase <rama>`
-
-Cada nivel incluye un objetivo, un modelo mental, pasos, transcript, pistas y reinicio. El nivel de rebase conserva los commits anteriores atenuados y dibuja las copias con hashes nuevos para que la reescritura sea visible.
-
-La estructura por niveles está inspirada en [Learn Git Branching](https://github.com/pcottle/learnGitBranching), de Peter Cottle, publicado bajo licencia MIT. GitPath implementa su propio contenido, motor y sistema visual; la atribución está documentada en [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
-
-## Arquitectura
-
-```text
-React + TypeScript + Vite
-  ├── src/data/course.ts                 escenas conceptuales
-  ├── src/data/challenges.ts             mundos y niveles del laboratorio
-  ├── src/lib/challenge-simulator.ts     motor determinista del grafo
-  ├── src/components/GraphBoard.tsx      visualización de commits y punteros
-  ├── src/lib/supabase.ts                cliente de autenticación
-  ├── src/App.tsx                        rutas, cuentas, onboarding, curso y progreso
-  └── src/index.css                      sistema visual responsive
-
-CI/CD
-  GitHub Actions → imagen multi-arquitectura en GHCR
-                 → promoción y merge automático en K3s-Cortex
-                 → Argo CD → rolling update en K3s
-```
-
-Las cuentas usan Supabase Auth con correo y contraseña. El progreso continúa guardándose en `localStorage`; iniciar sesión no lo sincroniza todavía entre dispositivos.
-
-## Desarrollo local
+Node.js 22.16+ y npm:
 
 ```bash
 npm ci
-cp .env.example .env.local
 npm run dev
 ```
 
-Configura en `.env.local` la URL y la clave publicable de Supabase. La clave `sb_publishable_…` está diseñada para clientes públicos; nunca uses una clave `service_role` en Vite ni en el navegador.
-
-Validación completa:
+Abrir http://127.0.0.1:5173. La API escucha en 8081; la web consulta `/api/jobs?role=data`.
 
 ```bash
-npm test
 npm run build
+npm test
+npx playwright install chromium
+npm run test:e2e
 ```
 
-Los tests comprueban que una rama nueva no mueva `main`, que merge cree un commit con dos padres y que rebase reproduzca los commits con identificadores nuevos.
+## Arquitectura y entrega
 
-## Entrega automática
+- Web React/TypeScript en nginx sin privilegios; API Node.js en otro contenedor.
+- El Ingress de k3s enruta `/` a la web y `/api` a la API.
+- Imágenes ARM64/amd64 en GHCR; CI propone sus digests en K3s-Cortex.
+- La promoción exige revisar/fusionar el PR; CI no recibe kubeconfig ni hace deploy directo.
+- Revertir el commit de promoción en Cortex es el mecanismo de rollback.
+- La instalación inicial y la demo con imágenes importadas no prueban por sí solas GitOps.
 
-Cada pull request hacia `main` instala dependencias, ejecuta el audit de producción, las pruebas y el build. Un push a `main` publica la imagen `amd64`/`arm64` en GHCR, actualiza el repositorio GitOps `K3s-Cortex`, fusiona la promoción y deja que Argo CD actualice los pods de K3s.
+Los paquetes existentes mantienen `ghcr.io/renzoal7/gitpath` y `gitpath-api`; no es
+necesario renombrarlos para cambiar el producto. El repositorio se llama `RenzoAL7/GPath`.
+
+## Siguiente etapa
+
+Conectar ofertas públicas Greenhouse mediante un colector periódico, validar y guardar
+snapshots en OCI Object Storage, y servir el último snapshot válido con fecha y procedencia.
+No recolectar en cada visita ni presentar una muestra acotada como todo el mercado.
+
+Detalles: [Growth Path](docs/growth-path.md).
+Instalación y guía para principiantes: `K3s-Cortex/docs/primer-despliegue.md`.
+El [Release Explorer anterior](docs/legacy-release-explorer.md), sus documentos de
+operación y `oci-storage-plan.md` son históricos y no definen el producto actual.

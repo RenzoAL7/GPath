@@ -1,0 +1,103 @@
+// Datos ficticios. No son vacantes activas ni una muestra real del mercado.
+export const demoJobs = [
+  {
+    id: 'data-1',
+    role: 'data',
+    company: 'Empresa de ejemplo A',
+    title: 'Data Engineer',
+    location: 'Lima · ejemplo',
+    description:
+      'Construir pipelines con Python y SQL. Trabajar con PostgreSQL, AWS, Docker y Git.',
+  },
+  {
+    id: 'data-2',
+    role: 'data',
+    company: 'Empresa de ejemplo B',
+    title: 'Junior Data Engineer',
+    location: 'Remoto · ejemplo',
+    description: 'Validar datos con SQL y Python. Automatizar procesos en AWS. Versionar con Git.',
+  },
+  {
+    id: 'data-3',
+    role: 'data',
+    company: 'Empresa de ejemplo C',
+    title: 'Analytics Engineer',
+    location: 'Híbrido · ejemplo',
+    description:
+      'Modelado con SQL y PostgreSQL. Pruebas de calidad con Python y CI/CD. Control de versiones con Git.',
+  },
+  {
+    id: 'data-4',
+    role: 'data',
+    company: 'Empresa de ejemplo D',
+    title: 'Data Infrastructure Intern',
+    location: 'Lima · ejemplo',
+    description:
+      'Operar pipelines en Linux con Python, SQL, Docker y Kubernetes. Conocimientos de AWS y Git.',
+  },
+  {
+    id: 'backend-1',
+    role: 'backend',
+    company: 'Empresa de ejemplo A',
+    title: 'Backend Developer',
+    location: 'Remoto · ejemplo',
+    description: 'Crear servicios con TypeScript y PostgreSQL. Desplegar con Docker y Git.',
+  },
+  {
+    id: 'backend-2',
+    role: 'backend',
+    company: 'Empresa de ejemplo B',
+    title: 'Backend Engineer',
+    location: 'Lima · ejemplo',
+    description: 'Desarrollar APIs con Go, SQL y PostgreSQL. Usar Docker, AWS y Git.',
+  },
+  {
+    id: 'backend-3',
+    role: 'backend',
+    company: 'Empresa de ejemplo C',
+    title: 'Junior Backend Developer',
+    location: 'Híbrido · ejemplo',
+    description: 'Crear APIs con Python y SQL. Pruebas en CI/CD y colaboración con Git.',
+  },
+  {
+    id: 'backend-4',
+    role: 'backend',
+    company: 'Empresa de ejemplo D',
+    title: 'Software Engineer · Backend',
+    location: 'Remoto · ejemplo',
+    description: 'Servicios con TypeScript, PostgreSQL, Docker, Kubernetes y CI/CD. Usar Git.',
+  },
+  {
+    id: 'devops-1',
+    role: 'devops',
+    company: 'Empresa de ejemplo A',
+    title: 'DevOps Engineer',
+    location: 'Lima · ejemplo',
+    description:
+      'Automatización con Terraform y Python. Operación de Linux, Docker, Kubernetes, AWS y CI/CD con Git.',
+  },
+  {
+    id: 'devops-2',
+    role: 'devops',
+    company: 'Empresa de ejemplo B',
+    title: 'Cloud Engineer',
+    location: 'Remoto · ejemplo',
+    description: 'Infraestructura en AWS con Terraform. Linux, Docker, Git y CI/CD.',
+  },
+  {
+    id: 'devops-3',
+    role: 'devops',
+    company: 'Empresa de ejemplo C',
+    title: 'Platform Engineer',
+    location: 'Híbrido · ejemplo',
+    description: 'Administrar Kubernetes y Linux. Construir CI/CD con Docker, Terraform y Git.',
+  },
+  {
+    id: 'devops-4',
+    role: 'devops',
+    company: 'Empresa de ejemplo D',
+    title: 'DevOps Intern',
+    location: 'Lima · ejemplo',
+    description: 'Aprender Linux y Docker. Automatizar con Python, Git y CI/CD.',
+  },
+]
