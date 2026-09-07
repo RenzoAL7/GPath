@@ -1,12 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import {
-  FiArrowRight,
-  FiArrowUpRight,
-  FiBarChart2,
-  FiCheck,
-  FiInfo,
-  FiMapPin,
-} from 'react-icons/fi'
+import { FiArrowRight, FiCheck, FiInfo, FiMapPin } from 'react-icons/fi'
 type Role = 'data' | 'backend' | 'devops'
 type Analysis = {
   role: Role
@@ -56,7 +49,7 @@ export default function App() {
       if (request.current === controller) setResult(payload)
     } catch {
       if (request.current === controller)
-        setError('No pudimos consultar los requisitos. Revisa la conexión y vuelve a explorar.')
+        setError('No se pudieron cargar los requisitos. Inténtalo de nuevo.')
     } finally {
       clearTimeout(timeout)
       if (request.current === controller) setLoading(false)
@@ -73,27 +66,16 @@ export default function App() {
     <div className="shell">
       <header className="topbar">
         <a className="brand" href="#" aria-label="GPath, inicio">
-          <span className="brand-mark" aria-hidden="true">
-            g↗
-          </span>
+          <img className="brand-mark" src="/gpath-mark.svg" width="34" height="34" alt="" />
           GPath<span className="brand-detail">Growth Path</span>
         </a>
         <span className="demo-label">
-          <span aria-hidden="true" /> Primera demo
+          <span aria-hidden="true" /> Demo
         </span>
       </header>
       <main>
         <section className="intro" aria-labelledby="page-title">
-          <p className="eyebrow">EL SIGUIENTE PASO, CON CONTEXTO</p>
-          <h1 id="page-title">
-            ¿Qué piden para
-            <br />
-            <span>el puesto que buscas?</span>
-          </h1>
-          <p>
-            Explora qué tecnologías se repiten en las ofertas.
-            <br className="desktop-break" /> Sin subir tu CV. Sin crear una cuenta.
-          </p>
+          <h1 id="page-title">Requisitos por puesto</h1>
         </section>
         <div className="workspace">
           <aside className="role-panel">
@@ -104,7 +86,7 @@ export default function App() {
               }}
             >
               <fieldset>
-                <legend>Elige un puesto</legend>
+                <legend>Puesto</legend>
                 {choices.map((choice) => (
                   <label
                     key={choice.id}
@@ -126,60 +108,55 @@ export default function App() {
                 ))}
               </fieldset>
               <button className="explore-button" disabled={loading} type="submit">
-                {loading ? 'Consultando…' : 'Explorar requisitos'}
+                {loading ? 'Cargando…' : 'Ver requisitos'}
                 <FiArrowRight aria-hidden="true" />
               </button>
             </form>
             <div className="sample-note">
               <FiInfo aria-hidden="true" />
               <p>
-                <strong>Estás viendo una demo.</strong> Usamos 12 ofertas ficticias para mostrar
-                cómo funciona. No son vacantes activas.
+                <strong>Datos de ejemplo.</strong> Las 12 ofertas son ficticias. No son vacantes
+                disponibles para postular.
               </p>
             </div>
             <details className="method">
-              <summary>¿Cómo se cuentan?</summary>
+              <summary>Cómo se calcula</summary>
               <p>
                 Cada tecnología cuenta una vez por oferta, aunque se mencione varias veces. El
-                porcentaje se calcula sobre las ofertas del puesto elegido. No mide todo el mercado
-                ni recomienda qué estudiar.
+                porcentaje se calcula sobre las ofertas del puesto elegido, no sobre todo el
+                mercado.
               </p>
             </details>
           </aside>
           <section className="results-panel" aria-labelledby="results-title" aria-busy={loading}>
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">TECNOLOGÍAS QUE SE REPITEN</p>
-                <h2 id="results-title">{result?.label || 'Preparando la muestra'}</h2>
+                <h2 id="results-title">{result?.label || 'Requisitos'}</h2>
               </div>
-              <FiBarChart2 className="panel-icon" aria-hidden="true" />
             </div>
             {error && (
               <div className="error-message" role="alert">
                 {error}
-                {result && ' Conservamos el último resultado disponible.'}
+                {result && ' Se muestra el resultado anterior.'}
               </div>
             )}
             <p className="result-summary" role="status">
               {loading
-                ? 'Consultando la muestra…'
+                ? 'Cargando requisitos…'
                 : result
-                  ? `${result.total} ofertas de ejemplo · conteos calculados por la API`
-                  : 'Pulsa «Explorar requisitos» para volver a intentar.'}
+                  ? `${result.total} ofertas de ejemplo`
+                  : 'Pulsa «Ver requisitos» para reintentar.'}
             </p>
             {result && (
               <>
                 <div className="chart-head">
                   <span>Tecnología</span>
-                  <span>Presente en las ofertas</span>
+                  <span>Ofertas que la mencionan</span>
                 </div>
                 <ol className="skill-chart">
-                  {result.skills.slice(0, 8).map((skill, index) => (
+                  {result.skills.slice(0, 8).map((skill) => (
                     <li key={skill.name}>
-                      <span className="skill-name">
-                        {skill.name}
-                        {index === 0 && <span className="top-skill">Más frecuente</span>}
-                      </span>
+                      <span className="skill-name">{skill.name}</span>
                       <div className="skill-measure">
                         <progress
                           max="100"
@@ -198,8 +175,7 @@ export default function App() {
                 </ol>
                 {result.total === 0 && <p>No hay ofertas para este puesto en la muestra.</p>}
                 <p className="chart-caption">
-                  Una oferta puede mencionar varias tecnologías; los porcentajes no tienen que sumar
-                  100%.
+                  Una misma oferta puede mencionar varias tecnologías.
                 </p>
               </>
             )}
@@ -209,8 +185,7 @@ export default function App() {
           <section className="jobs-section" aria-labelledby="jobs-title">
             <div className="jobs-heading">
               <div>
-                <p className="eyebrow">DE DÓNDE SALE EL RESULTADO</p>
-                <h2 id="jobs-title">Mira las ofertas de la muestra</h2>
+                <h2 id="jobs-title">Ofertas de ejemplo</h2>
               </div>
               <span>
                 {result.total} ejemplos · {result.label}
@@ -231,7 +206,7 @@ export default function App() {
                       <li key={skill}>{skill}</li>
                     ))}
                   </ul>
-                  <p className="example-only">Ejemplo ficticio · no admite postulaciones</p>
+                  <p className="example-only">Oferta ficticia</p>
                 </article>
               ))}
             </div>
@@ -240,11 +215,8 @@ export default function App() {
       </main>
       <footer>
         <p>
-          GPath <span>Un poco más de contexto para tu próximo paso.</span>
+          GPath <span>Growth Path</span>
         </p>
-        <a href="https://docs.greenhouse.io/job-board.html" target="_blank" rel="noreferrer">
-          Fuente prevista para la siguiente etapa: Greenhouse <FiArrowUpRight aria-hidden="true" />
-        </a>
       </footer>
     </div>
   )
