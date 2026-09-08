@@ -8,6 +8,26 @@ type Role =
   | 'devops-intern'
   | 'qa-intern'
   | 'security-intern'
+  | 'data-engineer-intern'
+  | 'data-engineering-intern'
+  | 'data-infrastructure-intern'
+  | 'data-platform-intern'
+  | 'cloud-engineer-intern'
+  | 'cloud-infrastructure-intern'
+  | 'platform-engineer-intern'
+  | 'infrastructure-engineer-intern'
+  | 'mlops-intern'
+  | 'machine-learning-engineer-intern'
+  | 'ml-engineer-intern'
+  | 'ai-engineer-intern'
+  | 'software-engineer-intern-data'
+  | 'software-engineer-intern-infrastructure'
+  | 'software-engineer-intern-backend'
+  | 'sre-intern'
+  | 'site-reliability-engineer-intern'
+  | 'big-data-intern'
+  | 'analytics-engineer-intern'
+  | 'dataops-intern'
 type Region = 'all' | 'latam'
 type Country = 'all' | 'pe' | 'mx' | 'br' | 'cl' | 'co' | 'unknown'
 type WorkMode = 'all' | 'remote' | 'hybrid' | 'onsite' | 'unknown'
@@ -44,14 +64,107 @@ type Analysis = {
   }[]
 }
 
-const choices: { id: Role; name: string; description: string }[] = [
-  { id: 'frontend-intern', name: 'Frontend Intern', description: 'Interfaces y experiencia de usuario' },
+const familyChoices: { id: Role; name: string; description: string }[] = [
+  {
+    id: 'frontend-intern',
+    name: 'Frontend Intern',
+    description: 'Interfaces y experiencia de usuario',
+  },
   { id: 'backend-intern', name: 'Backend Intern', description: 'APIs y servicios' },
   { id: 'data-intern', name: 'Data Intern', description: 'Datos y consultas' },
   { id: 'devops-intern', name: 'DevOps Intern', description: 'Cloud y automatización' },
   { id: 'qa-intern', name: 'QA Automation Intern', description: 'Pruebas y calidad' },
   { id: 'security-intern', name: 'Cybersecurity Intern', description: 'Seguridad web' },
 ]
+
+const specificChoices: { id: Role; name: string; description: string }[] = [
+  {
+    id: 'data-engineer-intern',
+    name: 'Data Engineer Intern',
+    description: 'Pipelines y almacenes de datos',
+  },
+  {
+    id: 'data-engineering-intern',
+    name: 'Data Engineering Intern',
+    description: 'Procesamiento y calidad de datos',
+  },
+  {
+    id: 'data-infrastructure-intern',
+    name: 'Data Infrastructure Intern',
+    description: 'Plataformas para mover y servir datos',
+  },
+  {
+    id: 'data-platform-intern',
+    name: 'Data Platform Intern',
+    description: 'Servicios y herramientas para datos',
+  },
+  {
+    id: 'cloud-engineer-intern',
+    name: 'Cloud Engineer Intern',
+    description: 'Servicios cloud y automatización',
+  },
+  {
+    id: 'cloud-infrastructure-intern',
+    name: 'Cloud Infrastructure Intern',
+    description: 'Redes, compute y plataformas cloud',
+  },
+  {
+    id: 'platform-engineer-intern',
+    name: 'Platform Engineer Intern',
+    description: 'Plataformas internas y developer tooling',
+  },
+  {
+    id: 'infrastructure-engineer-intern',
+    name: 'Infrastructure Engineer Intern',
+    description: 'Infraestructura y sistemas',
+  },
+  { id: 'mlops-intern', name: 'MLOps Intern', description: 'Pipelines y operación de modelos' },
+  {
+    id: 'machine-learning-engineer-intern',
+    name: 'Machine Learning Engineer Intern',
+    description: 'Modelos y sistemas de machine learning',
+  },
+  { id: 'ml-engineer-intern', name: 'ML Engineer Intern', description: 'Modelos y sistemas de ML' },
+  {
+    id: 'ai-engineer-intern',
+    name: 'AI Engineer Intern',
+    description: 'Aplicaciones y sistemas de IA',
+  },
+  {
+    id: 'software-engineer-intern-data',
+    name: 'Software Engineer Intern Data',
+    description: 'Software para datos',
+  },
+  {
+    id: 'software-engineer-intern-infrastructure',
+    name: 'Software Engineer Intern Infrastructure',
+    description: 'Software para infraestructura',
+  },
+  {
+    id: 'software-engineer-intern-backend',
+    name: 'Software Engineer Intern Backend',
+    description: 'Servicios y APIs',
+  },
+  { id: 'sre-intern', name: 'SRE Intern', description: 'Fiabilidad y operación' },
+  {
+    id: 'site-reliability-engineer-intern',
+    name: 'Site Reliability Engineer Intern',
+    description: 'Fiabilidad y operación',
+  },
+  {
+    id: 'big-data-intern',
+    name: 'Big Data Intern',
+    description: 'Procesamiento de grandes volúmenes',
+  },
+  {
+    id: 'analytics-engineer-intern',
+    name: 'Analytics Engineer Intern',
+    description: 'Modelado y análisis',
+  },
+  { id: 'dataops-intern', name: 'DataOps Intern', description: 'Automatización de datos' },
+]
+
+const choices = [...familyChoices, ...specificChoices]
 
 const countryLabels: Record<Country, string> = {
   all: 'Todos',
@@ -145,7 +258,9 @@ export default function App() {
       if (request.current === controller) setResult(payload)
     } catch {
       if (request.current === controller)
-        setError('No se pudieron actualizar las ofertas. Comprueba la conexión y vuelve a intentarlo.')
+        setError(
+          'No se pudieron actualizar las ofertas. Comprueba la conexión y vuelve a intentarlo.',
+        )
     } finally {
       clearTimeout(timeout)
       if (request.current === controller) setLoading(false)
@@ -208,12 +323,25 @@ export default function App() {
               <label className="filter-label" htmlFor="role">
                 Puesto
               </label>
-              <select id="role" value={role} onChange={(event) => setRole(event.target.value as Role)}>
-                {choices.map((choice) => (
-                  <option key={choice.id} value={choice.id}>
-                    {choice.name}
-                  </option>
-                ))}
+              <select
+                id="role"
+                value={role}
+                onChange={(event) => setRole(event.target.value as Role)}
+              >
+                <optgroup label="Familias">
+                  {familyChoices.map((choice) => (
+                    <option key={choice.id} value={choice.id}>
+                      {choice.name}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Puestos específicos">
+                  {specificChoices.map((choice) => (
+                    <option key={choice.id} value={choice.id}>
+                      {choice.name}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
               <p className="selection-hint">
                 {choices.find((choice) => choice.id === role)?.description}
@@ -260,7 +388,10 @@ export default function App() {
                 id="work-mode"
                 value={filters.workMode}
                 onChange={(event) =>
-                  setFilters((current) => ({ ...current, workMode: event.target.value as WorkMode }))
+                  setFilters((current) => ({
+                    ...current,
+                    workMode: event.target.value as WorkMode,
+                  }))
                 }
               >
                 {workModes.map((value) => (
@@ -373,7 +504,9 @@ export default function App() {
           <section className="jobs-section" id="ofertas" aria-labelledby="jobs-title">
             <div className="jobs-heading">
               <div>
-                <p className="section-label">{live ? 'Ofertas consultadas' : 'Ofertas de ejemplo'}</p>
+                <p className="section-label">
+                  {live ? 'Ofertas consultadas' : 'Ofertas de ejemplo'}
+                </p>
                 <h2 id="jobs-title">Qué forma el conteo</h2>
               </div>
               <span>
@@ -403,7 +536,10 @@ export default function App() {
                     )}
                     <p className="example-only">
                       {live
-                        ? [job.source, formatDate(job.updatedAt) && `actualizada ${formatDate(job.updatedAt)}`]
+                        ? [
+                            job.source,
+                            formatDate(job.updatedAt) && `actualizada ${formatDate(job.updatedAt)}`,
+                          ]
                             .filter(Boolean)
                             .join(' · ')
                         : 'Oferta ficticia'}

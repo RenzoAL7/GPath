@@ -1,10 +1,10 @@
 # GPath — Growth Path
 
-Explorador de tecnologías mencionadas en puestos de entrada: el usuario elige uno de seis
-roles `Intern`, `Practicante` o `Internship`, filtra por región y revisa las ofertas que
+Explorador de tecnologías mencionadas en puestos de entrada: el usuario elige una familia o
+uno de 20 puestos técnicos específicos con `Intern`, `Practicante` o `Internship`, filtra por región y revisa las ofertas que
 sustentan los conteos.
 
-**Estado: primera versión live.** La API consulta feeds públicos de Greenhouse y conserva
+**Estado: primera versión live.** La API consulta feeds públicos de Greenhouse, Lever y Ashby y conserva
 una muestra acotada con enlaces a las publicaciones originales. `JOB_MODE=demo` ofrece 24
 ejemplos ficticios para pruebas deterministas. Los conteos no son estadísticas de todo el
 mercado. No hay registro, documentos personales, Supabase ni base relacional de aplicación.
@@ -35,8 +35,13 @@ npm run test:e2e
 
 ## Fuentes y filtros
 
-- Greenhouse es la primera fuente live. La API limita las ofertas por fuente y muestra su
-  procedencia, fecha disponible y enlace original.
+- La API usa los endpoints públicos de ofertas de Greenhouse, Lever y Ashby; no consulta el
+  HTML de otras páginas ni necesita credenciales para estos feeds de lectura.
+- Las fuentes predeterminadas son cuatro tableros de Greenhouse, cuatro sitios de Lever y tres
+  tableros de Ashby. Se pueden reemplazar con `GREENHOUSE_BOARDS`, `LEVER_SITES` y
+  `ASHBY_BOARDS`; los nombres después de `:` son etiquetas visibles en el resultado.
+- La API limita las ofertas por fuente y muestra su procedencia, fecha disponible y enlace
+  original.
 - Los filtros aceptan `region=all|latam`, país (`pe`, `mx`, `br`, `cl`, `co` o `unknown`) y
   modalidad (`remote`, `hybrid`, `onsite` o `unknown`). Los filtros se aplican antes de
   calcular los porcentajes y no hacen fallback silencioso a la muestra global.
