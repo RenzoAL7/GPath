@@ -24,7 +24,7 @@ export function parseGreenhouseSources(value) {
   return sources
 }
 
-function decodeHtml(value) {
+export function decodeHtml(value) {
   let text = String(value || '')
   for (let pass = 0; pass < 2; pass++) {
     const decoded = text.replace(
@@ -77,7 +77,7 @@ async function readJson(response, maxBytes) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'))
 }
 
-async function fetchJson(fetcher, url, timeoutMs, maxBytes) {
+export async function fetchJson(fetcher, url, timeoutMs, maxBytes) {
   const response = await fetcher(url, {
     headers: { accept: 'application/json' },
     redirect: 'error',
@@ -92,9 +92,9 @@ function locationOf(job) {
   return offices.filter(Boolean).join(' · ') || 'Ubicación no indicada'
 }
 
-function normalizeLocation(value) {
+export function normalizeLocation(value, workplaceType = '') {
   const location = String(value || '').trim() || 'Ubicación no indicada'
-  const lower = location.toLowerCase()
+  const lower = `${location} ${workplaceType}`.toLowerCase()
   const countries = [
     ['pe', /\b(?:peru|perú|lima)\b/i],
     ['mx', /\b(?:mexico|méxico|mexico city|ciudad de méxico)\b/i],
@@ -103,9 +103,8 @@ function normalizeLocation(value) {
     ['co', /\b(?:colombia|bogotá|bogota)\b/i],
   ]
   const country = countries.find(([, pattern]) => pattern.test(location))?.[0] || null
-  const explicitlyLatam = /\b(?:latam|latin america|latinoamérica|latinoamerica|south america)\b/i.test(
-    location,
-  )
+  const explicitlyLatam =
+    /\b(?:latam|latin america|latinoamérica|latinoamerica|south america)\b/i.test(location)
   const region = country || explicitlyLatam ? 'latam' : 'unknown'
   const workMode = /\b(?:remote|remoto|fully remote)\b/i.test(lower)
     ? 'remote'
@@ -156,7 +155,8 @@ export function createGreenhouseJobs({
   const resultInflight = new Map()
 
   async function readBoards() {
-    if (boardCache && clock() - boardCheckedAt < ttl) return boardCache
+    if (boardCache && clock() - boardCheckedAt < ttl && boardCache.every((board) => board.ok))
+      return boardCache
     if (!boardInflight) {
       boardInflight = Promise.all(
         sources.map(async (source) => {
@@ -236,7 +236,7 @@ export function createGreenhouseJobs({
       if (!resultInflight.has(key)) {
         const request = refresh(role, selectedFilters)
           .then((value) => {
-            resultCache.set(key, { checkedAt: clock(), value })
+            if (!value.partial) resultCache.set(key, { checkedAt: clock(), value })
             return value
           })
           .finally(() => resultInflight.delete(key))

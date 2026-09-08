@@ -8,6 +8,26 @@ type Role =
   | 'devops-intern'
   | 'qa-intern'
   | 'security-intern'
+  | 'data-engineer-intern'
+  | 'data-engineering-intern'
+  | 'data-infrastructure-intern'
+  | 'data-platform-intern'
+  | 'cloud-engineer-intern'
+  | 'cloud-infrastructure-intern'
+  | 'platform-engineer-intern'
+  | 'infrastructure-engineer-intern'
+  | 'mlops-intern'
+  | 'machine-learning-engineer-intern'
+  | 'ml-engineer-intern'
+  | 'ai-engineer-intern'
+  | 'software-engineer-intern-data'
+  | 'software-engineer-intern-infrastructure'
+  | 'software-engineer-intern-backend'
+  | 'sre-intern'
+  | 'site-reliability-engineer-intern'
+  | 'big-data-intern'
+  | 'analytics-engineer-intern'
+  | 'dataops-intern'
 type Region = 'all' | 'latam'
 type Country = 'all' | 'pe' | 'mx' | 'br' | 'cl' | 'co' | 'unknown'
 type WorkMode = 'all' | 'remote' | 'hybrid' | 'onsite' | 'unknown'
@@ -44,14 +64,107 @@ type Analysis = {
   }[]
 }
 
-const choices: { id: Role; name: string; description: string }[] = [
-  { id: 'frontend-intern', name: 'Frontend Intern', description: 'Interfaces y experiencia de usuario' },
+const familyChoices: { id: Role; name: string; description: string }[] = [
+  {
+    id: 'frontend-intern',
+    name: 'Frontend Intern',
+    description: 'Interfaces y experiencia de usuario',
+  },
   { id: 'backend-intern', name: 'Backend Intern', description: 'APIs y servicios' },
   { id: 'data-intern', name: 'Data Intern', description: 'Datos y consultas' },
   { id: 'devops-intern', name: 'DevOps Intern', description: 'Cloud y automatización' },
   { id: 'qa-intern', name: 'QA Automation Intern', description: 'Pruebas y calidad' },
   { id: 'security-intern', name: 'Cybersecurity Intern', description: 'Seguridad web' },
 ]
+
+const specificChoices: { id: Role; name: string; description: string }[] = [
+  {
+    id: 'data-engineer-intern',
+    name: 'Data Engineer Intern',
+    description: 'Pipelines y almacenes de datos',
+  },
+  {
+    id: 'data-engineering-intern',
+    name: 'Data Engineering Intern',
+    description: 'Procesamiento y calidad de datos',
+  },
+  {
+    id: 'data-infrastructure-intern',
+    name: 'Data Infrastructure Intern',
+    description: 'Plataformas para mover y servir datos',
+  },
+  {
+    id: 'data-platform-intern',
+    name: 'Data Platform Intern',
+    description: 'Servicios y herramientas para datos',
+  },
+  {
+    id: 'cloud-engineer-intern',
+    name: 'Cloud Engineer Intern',
+    description: 'Servicios cloud y automatización',
+  },
+  {
+    id: 'cloud-infrastructure-intern',
+    name: 'Cloud Infrastructure Intern',
+    description: 'Redes, compute y plataformas cloud',
+  },
+  {
+    id: 'platform-engineer-intern',
+    name: 'Platform Engineer Intern',
+    description: 'Plataformas internas y developer tooling',
+  },
+  {
+    id: 'infrastructure-engineer-intern',
+    name: 'Infrastructure Engineer Intern',
+    description: 'Infraestructura y sistemas',
+  },
+  { id: 'mlops-intern', name: 'MLOps Intern', description: 'Pipelines y operación de modelos' },
+  {
+    id: 'machine-learning-engineer-intern',
+    name: 'Machine Learning Engineer Intern',
+    description: 'Modelos y sistemas de machine learning',
+  },
+  { id: 'ml-engineer-intern', name: 'ML Engineer Intern', description: 'Modelos y sistemas de ML' },
+  {
+    id: 'ai-engineer-intern',
+    name: 'AI Engineer Intern',
+    description: 'Aplicaciones y sistemas de IA',
+  },
+  {
+    id: 'software-engineer-intern-data',
+    name: 'Software Engineer Intern Data',
+    description: 'Software para datos',
+  },
+  {
+    id: 'software-engineer-intern-infrastructure',
+    name: 'Software Engineer Intern Infrastructure',
+    description: 'Software para infraestructura',
+  },
+  {
+    id: 'software-engineer-intern-backend',
+    name: 'Software Engineer Intern Backend',
+    description: 'Servicios y APIs',
+  },
+  { id: 'sre-intern', name: 'SRE Intern', description: 'Fiabilidad y operación' },
+  {
+    id: 'site-reliability-engineer-intern',
+    name: 'Site Reliability Engineer Intern',
+    description: 'Fiabilidad y operación',
+  },
+  {
+    id: 'big-data-intern',
+    name: 'Big Data Intern',
+    description: 'Procesamiento de grandes volúmenes',
+  },
+  {
+    id: 'analytics-engineer-intern',
+    name: 'Analytics Engineer Intern',
+    description: 'Modelado y análisis',
+  },
+  { id: 'dataops-intern', name: 'DataOps Intern', description: 'Automatización de datos' },
+]
+
+const choices = [...familyChoices, ...specificChoices]
 
 const countryLabels: Record<Country, string> = {
   all: 'Todos',
@@ -145,7 +258,9 @@ export default function App() {
       if (request.current === controller) setResult(payload)
     } catch {
       if (request.current === controller)
-        setError('No se pudieron actualizar las ofertas. Comprueba la conexión y vuelve a intentarlo.')
+        setError(
+          'No se pudieron actualizar las ofertas. Comprueba la conexión y vuelve a intentarlo.',
+        )
     } finally {
       clearTimeout(timeout)
       if (request.current === controller) setLoading(false)
@@ -167,24 +282,37 @@ export default function App() {
           <img className="brand-mark" src="/gpath-mark.svg" width="34" height="34" alt="" />
           GPath<span className="brand-detail">Growth Path</span>
         </a>
+        <nav className="top-nav" aria-label="Secciones">
+          <a href="#explorar">Explorar</a>
+          <a href="#ofertas">Ofertas</a>
+          <a href="#metodo">Método</a>
+        </nav>
         <span className={`status-label ${live ? 'is-live' : 'is-demo'}`}>
           <span aria-hidden="true" /> {statusText}
         </span>
       </header>
       <main>
-        <section className="intro" aria-labelledby="page-title">
-          <h1 id="page-title">
-            Compara lo que piden
-            <br />
-            <span>para empezar.</span>
-          </h1>
-          <p className="intro-copy">
-            Elige un puesto y una región. Revisa qué tecnologías mencionan las ofertas, una por
-            una.
-          </p>
+        <section className="intro">
+          <div className="intro-copy-block">
+            <p className="intro-kicker">Consulta de puestos de entrada</p>
+            <h1 id="page-title">
+              Tecnologías que aparecen
+              <br />
+              <span>en puestos de entrada.</span>
+            </h1>
+            <p className="intro-copy">
+              Elige un puesto y una región. Comparamos las menciones de la muestra, oferta por
+              oferta.
+            </p>
+          </div>
+          <div className="intro-index" aria-hidden="true">
+            <span>01</span>
+            <span>Puesto → filtros → resultado</span>
+          </div>
         </section>
-        <div className="workspace">
+        <div className="workspace" id="explorar">
           <aside className="role-panel">
+            <p className="filter-eyebrow">01 / Define la consulta</p>
             <form
               className="filter-form"
               onSubmit={(event) => {
@@ -195,12 +323,25 @@ export default function App() {
               <label className="filter-label" htmlFor="role">
                 Puesto
               </label>
-              <select id="role" value={role} onChange={(event) => setRole(event.target.value as Role)}>
-                {choices.map((choice) => (
-                  <option key={choice.id} value={choice.id}>
-                    {choice.name}
-                  </option>
-                ))}
+              <select
+                id="role"
+                value={role}
+                onChange={(event) => setRole(event.target.value as Role)}
+              >
+                <optgroup label="Familias">
+                  {familyChoices.map((choice) => (
+                    <option key={choice.id} value={choice.id}>
+                      {choice.name}
+                    </option>
+                  ))}
+                </optgroup>
+                <optgroup label="Puestos específicos">
+                  {specificChoices.map((choice) => (
+                    <option key={choice.id} value={choice.id}>
+                      {choice.name}
+                    </option>
+                  ))}
+                </optgroup>
               </select>
               <p className="selection-hint">
                 {choices.find((choice) => choice.id === role)?.description}
@@ -247,7 +388,10 @@ export default function App() {
                 id="work-mode"
                 value={filters.workMode}
                 onChange={(event) =>
-                  setFilters((current) => ({ ...current, workMode: event.target.value as WorkMode }))
+                  setFilters((current) => ({
+                    ...current,
+                    workMode: event.target.value as WorkMode,
+                  }))
                 }
               >
                 {workModes.map((value) => (
@@ -287,7 +431,7 @@ export default function App() {
                 )}
               </p>
             </div>
-            <details className="method">
+            <details className="method" id="metodo">
               <summary>Cómo se cuentan las tecnologías</summary>
               <p>
                 {live
@@ -357,10 +501,12 @@ export default function App() {
           </section>
         </div>
         {result && result.total > 0 && (
-          <section className="jobs-section" aria-labelledby="jobs-title">
+          <section className="jobs-section" id="ofertas" aria-labelledby="jobs-title">
             <div className="jobs-heading">
               <div>
-                <p className="section-label">{live ? 'Ofertas consultadas' : 'Ofertas de ejemplo'}</p>
+                <p className="section-label">
+                  {live ? 'Ofertas consultadas' : 'Ofertas de ejemplo'}
+                </p>
                 <h2 id="jobs-title">Qué forma el conteo</h2>
               </div>
               <span>
@@ -390,7 +536,10 @@ export default function App() {
                     )}
                     <p className="example-only">
                       {live
-                        ? [job.source, formatDate(job.updatedAt) && `actualizada ${formatDate(job.updatedAt)}`]
+                        ? [
+                            job.source,
+                            formatDate(job.updatedAt) && `actualizada ${formatDate(job.updatedAt)}`,
+                          ]
                             .filter(Boolean)
                             .join(' · ')
                         : 'Oferta ficticia'}

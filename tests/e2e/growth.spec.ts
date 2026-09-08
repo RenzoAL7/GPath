@@ -9,6 +9,7 @@ test('demo calculates entry-level roles and shows the supporting examples', asyn
   await expect(mark).toHaveJSProperty('naturalWidth', 40)
   await expect(page.getByText('Demo local', { exact: true })).toBeVisible()
   await expect(page.getByLabel('Puesto')).toHaveValue('data-intern')
+  await expect(page.getByLabel('Puesto').locator('option')).toHaveCount(26)
   await expect(page.locator('#results-title')).toHaveText('Data Intern')
   await expect(page.locator('.job-card')).toHaveCount(4)
   await expect(page.getByRole('progressbar', { name: 'Python: 4 de 4 ofertas' })).toHaveAttribute(
@@ -23,6 +24,10 @@ test('demo calculates entry-level roles and shows the supporting examples', asyn
     'value',
     '100',
   )
+
+  await page.getByLabel('Puesto').selectOption('data-engineer-intern')
+  await page.getByRole('button', { name: 'Ver tecnologías' }).click()
+  await expect(page.locator('#results-title')).toHaveText('Data Engineer Intern')
 
   await page.getByLabel('Puesto').selectOption('qa-intern')
   await page.getByRole('button', { name: 'Ver tecnologías' }).click()

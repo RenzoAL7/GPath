@@ -13,6 +13,7 @@
   --ink: #182b42;
   --blue: #224d88;
   --blue-dark: #173e75;
+  --blue-light: #8bb7e6;
   --muted: #5c6b7e;
   --line: #dce4ed;
   --orange: #b8421e;
@@ -79,8 +80,11 @@ h3 {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  min-height: 100px;
-  border-bottom: 1px solid var(--line);
+  min-height: 86px;
+  margin: 0 -40px;
+  padding: 0 40px;
+  background: var(--ink);
+  color: var(--white);
 }
 
 .brand {
@@ -92,6 +96,7 @@ h3 {
   font-size: 25px;
   font-weight: 600;
   letter-spacing: -1px;
+  color: var(--white);
 }
 
 .brand-mark {
@@ -106,18 +111,39 @@ h3 {
   letter-spacing: 0;
   font-weight: 400;
   font-size: 14px;
-  color: var(--muted);
-  border-left: 1px solid #bac8d9;
+  color: #b8c7d8;
+  border-left: 1px solid #53677f;
   padding-left: 14px;
   margin-left: 8px;
+}
+
+.top-nav {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  margin-left: auto;
+}
+
+.top-nav a {
+  color: #d7e0eb;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.top-nav a:hover {
+  color: var(--white);
 }
 
 .status-label {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--muted);
-  font-size: 14px;
+  color: #d7e0eb;
+  border: 1px solid #53677f;
+  border-radius: 999px;
+  padding: 8px 11px;
+  font-size: 12px;
+  white-space: nowrap;
 }
 
 .status-label > span {
@@ -136,39 +162,93 @@ h3 {
 }
 
 .intro {
-  padding: 45px 0 32px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 40px;
+  margin: 0 -40px;
+  padding: 48px 40px 54px;
+  background: var(--ink);
+  border-top: 1px solid #314866;
+  color: var(--white);
+}
+
+.intro-copy-block {
+  max-width: 760px;
+}
+
+.intro-kicker,
+.filter-eyebrow {
+  color: #a9bed6;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+
+.intro-kicker {
+  margin-bottom: 15px;
 }
 
 h1 {
   font-family: 'Space Grotesk', sans-serif;
-  font-weight: 500;
-  font-size: clamp(30px, 4vw, 46px);
-  line-height: 1.12;
-  letter-spacing: -1.8px;
-  margin-bottom: 15px;
+  font-weight: 600;
+  font-size: clamp(36px, 5vw, 62px);
+  line-height: 0.99;
+  letter-spacing: -3px;
+  margin-bottom: 19px;
 }
 
 h1 span {
-  color: var(--blue);
+  color: var(--blue-light);
 }
 
 .intro-copy {
-  max-width: 620px;
+  max-width: 580px;
+  color: #d7e0eb;
   font-size: 17px;
-  color: var(--muted);
-  line-height: 1.6;
+  line-height: 1.55;
+}
+
+.intro-index {
+  display: grid;
+  gap: 10px;
+  width: 190px;
+  flex-shrink: 0;
+  padding: 12px 0 0;
+  border-top: 1px solid #53677f;
+  color: #a9bed6;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.intro-index span:first-child {
+  color: var(--white);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 28px;
+  line-height: 1;
 }
 
 .workspace {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
-  gap: 30px;
+  gap: 24px;
   align-items: start;
+  margin-top: 32px;
 }
 
 .role-panel {
-  padding-top: 8px;
   min-width: 0;
+  padding: 20px 22px 24px;
+  background: #e8eff7;
+  border: 1px solid #ccd9e7;
+  border-top: 4px solid var(--blue);
+}
+
+.filter-eyebrow {
+  margin-bottom: 22px;
+  color: var(--blue);
 }
 
 .filter-form {
@@ -178,18 +258,19 @@ h1 span {
 
 .filter-label,
 .region-field legend {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
 .filter-form select {
   width: 100%;
   min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  min-height: 44px;
+  border: 1px solid #c1d0e0;
+  border-radius: 3px;
   background: var(--white);
   color: var(--ink);
-  padding: 11px 12px;
+  padding: 10px 12px;
 }
 
 .selection-hint {
@@ -213,15 +294,15 @@ h1 span {
 .segmented {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border: 1px solid #c1d0e0;
+  border-radius: 3px;
   padding: 3px;
-  background: #eef3f9;
+  background: #dce7f2;
 }
 
 .segmented button {
   border: 0;
-  border-radius: 5px;
+  border-radius: 2px;
   background: transparent;
   color: var(--muted);
   padding: 8px 5px;
@@ -229,9 +310,9 @@ h1 span {
 }
 
 .segmented button.active {
-  background: var(--white);
-  color: var(--ink);
-  box-shadow: 0 1px 3px #182b4218;
+  background: var(--blue);
+  color: var(--white);
+  box-shadow: none;
   font-weight: 500;
 }
 
@@ -241,9 +322,9 @@ h1 span {
   justify-content: space-between;
   width: 100%;
   border: 0;
-  border-radius: 8px;
+  border-radius: 3px;
   background: var(--blue);
-  color: #fff;
+  color: var(--white);
   padding: 14px 16px;
   margin-top: 7px;
   font-weight: 500;
@@ -259,7 +340,7 @@ h1 span {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
   line-height: 1.5;
-  margin-top: 17px;
+  margin-top: 18px;
 }
 
 .sample-note {
@@ -267,6 +348,8 @@ h1 span {
   align-items: flex-start;
   gap: 9px;
   margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #c9d7e6;
   color: var(--muted);
   font-size: 14px;
   line-height: 1.6;
@@ -281,11 +364,13 @@ h1 span {
 .sample-note strong {
   display: block;
   color: var(--ink);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .method {
-  margin: 19px 0;
+  margin: 20px 0 0;
+  padding-top: 17px;
+  border-top: 1px solid #c9d7e6;
   font-size: 14px;
   color: var(--muted);
   line-height: 1.6;
@@ -303,9 +388,9 @@ h1 span {
 .results-panel {
   background: var(--white);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-top: 4px solid var(--blue);
+  border-radius: 3px;
   padding: 26px 30px;
-  box-shadow: 0 8px 24px #182b4205;
   min-height: 440px;
   min-width: 0;
 }
@@ -326,9 +411,9 @@ h1 span {
 
 .panel-heading h2 {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 27px;
-  font-weight: 500;
-  letter-spacing: -0.8px;
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -1px;
   margin-top: 5px;
 }
 
@@ -343,8 +428,8 @@ h1 span {
   display: flex;
   justify-content: space-between;
   margin-top: 25px;
-  border-bottom: 1px solid var(--line);
-  padding-bottom: 10px;
+  border-bottom: 2px solid #b7c8da;
+  padding-bottom: 11px;
   font-size: 12px;
   color: var(--muted);
 }
@@ -360,13 +445,14 @@ h1 span {
   grid-template-columns: minmax(115px, 0.8fr) minmax(0, 1fr);
   align-items: center;
   gap: 16px;
-  padding: 10px 0;
+  padding: 12px 0;
+  border-bottom: 1px solid #edf1f6;
 }
 
 .skill-name {
   min-width: 0;
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .skill-measure {
@@ -382,24 +468,24 @@ h1 span {
   border: none;
   width: 100%;
   min-width: 0;
-  height: 9px;
-  border-radius: 3px;
+  height: 8px;
+  border-radius: 0;
   background: #edf1f6;
 }
 
 .skill-measure progress::-webkit-progress-bar {
   background: #edf1f6;
-  border-radius: 3px;
+  border-radius: 0;
 }
 
 .skill-measure progress::-webkit-progress-value {
-  background: #416799;
-  border-radius: 3px;
+  background: var(--blue);
+  border-radius: 0;
 }
 
 .skill-measure progress::-moz-progress-bar {
-  background: #416799;
-  border-radius: 3px;
+  background: var(--blue);
+  border-radius: 0;
 }
 
 .skill-measure > span {
@@ -434,8 +520,8 @@ h1 span {
 
 .empty-state {
   margin-top: 38px;
-  border: 1px dashed #b9c8d8;
-  border-radius: 8px;
+  border: 1px dashed #9eb2c8;
+  border-radius: 2px;
   padding: 25px;
   color: var(--muted);
   line-height: 1.6;
@@ -452,7 +538,7 @@ h1 span {
   background: #fff1ed;
   color: #8a3119;
   border: 1px solid #ebc7b7;
-  border-radius: 7px;
+  border-radius: 2px;
   padding: 12px;
   font-size: 14px;
   line-height: 1.5;
@@ -460,7 +546,7 @@ h1 span {
 }
 
 .jobs-section {
-  margin-top: 42px;
+  margin-top: 64px;
 }
 
 .jobs-heading {
@@ -468,15 +554,17 @@ h1 span {
   align-items: end;
   justify-content: space-between;
   gap: 15px;
-  margin-bottom: 20px;
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 15px;
+  margin-bottom: 0;
 }
 
 .jobs-heading h2 {
   max-width: 620px;
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 24px;
-  letter-spacing: -0.6px;
-  font-weight: 500;
+  font-size: 30px;
+  letter-spacing: -1px;
+  font-weight: 600;
   margin-top: 4px;
 }
 
@@ -489,26 +577,30 @@ h1 span {
 .jobs-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  column-gap: 44px;
 }
 
 .job-card {
   min-width: 0;
-  padding: 23px;
-  background: var(--white);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  padding: 25px 0 27px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
 }
 
 .company {
-  color: var(--muted);
-  font-size: 13px;
+  color: var(--blue);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.03em;
 }
 
 .job-card h3 {
-  font-size: 18px;
-  font-weight: 500;
-  margin-top: 6px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.3px;
+  margin-top: 8px;
 }
 
 .location {
@@ -523,7 +615,7 @@ h1 span {
 .job-description {
   font-size: 15px;
   line-height: 1.6;
-  margin-top: 16px;
+  margin-top: 17px;
   color: #455971;
 }
 
@@ -538,15 +630,19 @@ h1 span {
 
 .tags li {
   font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  background: #eef3f9;
+  padding: 4px 0;
+  margin-right: 7px;
+  border-bottom: 2px solid #aac0d8;
   color: #36577d;
 }
 
 .job-meta {
-  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding-top: 12px;
+  margin-top: 11px;
 }
 
 .job-link {
@@ -566,7 +662,7 @@ h1 span {
 .example-only {
   font-size: 12px;
   color: var(--muted);
-  margin-top: 8px;
+  margin: 0;
 }
 
 footer {
@@ -594,6 +690,14 @@ footer p span {
 @media (max-width: 850px) {
   .shell {
     padding: 0 24px;
+  }
+
+  .topbar,
+  .intro {
+    margin-left: -24px;
+    margin-right: -24px;
+    padding-left: 24px;
+    padding-right: 24px;
   }
 
   .workspace {
@@ -635,7 +739,15 @@ footer p span {
   }
 
   .topbar {
-    min-height: 78px;
+    min-height: 74px;
+    margin-left: -18px;
+    margin-right: -18px;
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .top-nav {
+    display: none;
   }
 
   .brand-detail {
@@ -647,11 +759,19 @@ footer p span {
   }
 
   .intro {
-    padding: 29px 0 23px;
+    align-items: start;
+    margin-left: -18px;
+    margin-right: -18px;
+    padding: 38px 18px 42px;
+  }
+
+  .intro-index {
+    display: none;
   }
 
   h1 {
-    letter-spacing: -1.2px;
+    font-size: clamp(35px, 11vw, 50px);
+    letter-spacing: -2px;
   }
 
   .intro-copy {
@@ -665,7 +785,7 @@ footer p span {
 
   .results-panel {
     padding: 22px 18px;
-    border-radius: 10px;
+    border-radius: 2px;
     min-height: 0;
   }
 
@@ -678,11 +798,11 @@ footer p span {
   }
 
   .jobs-section {
-    margin-top: 30px;
+    margin-top: 46px;
   }
 
   .jobs-heading h2 {
-    font-size: 22px;
+    font-size: 26px;
   }
 
   footer {
@@ -695,7 +815,7 @@ footer p span {
   }
 
   .brand {
-    font-size: 23px;
+    font-size: 22px;
   }
 }
 

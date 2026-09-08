@@ -14,6 +14,14 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  REGISTRY: ghcr.io
+  WEB_IMAGE: ghcr.io/renzoal7/gitpath
+  API_IMAGE: ghcr.io/renzoal7/gitpath-api
+  # These remain two image names. Each name is a manifest that lets the
+  # registry choose amd64 or arm64 for the machine that pulls it.
+  IMAGE_PLATFORMS: linux/amd64,linux/arm64
+
 jobs:
   validate:
     name: Test API and interface
@@ -76,8 +84,8 @@ jobs:
         if: always()
         run: docker compose down
 
-  container:
-    name: Package amd64 and arm64
+  package-web:
+    name: Package web image
     needs: smoke
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -85,8 +93,7 @@ jobs:
       contents: read
       packages: write
     outputs:
-      web-digest: ${{ steps.web.outputs.digest }}
-      api-digest: ${{ steps.api.outputs.digest }}
+      digest: ${{ steps.image.outputs.digest }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -98,18 +105,18 @@ jobs:
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Web image
-        id: web
+      - name: Build one multi-platform web image
+        id: image
         uses: docker/build-push-action@v6
         with:
           context: .
           target: web
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ env.IMAGE_PLATFORMS }}
           push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
-          tags: ghcr.io/renzoal7/gitpath:sha-${{ github.sha }}
+          tags: ${{ env.WEB_IMAGE }}:sha-${{ github.sha }}
           labels: |
             org.opencontainers.image.source=https://github.com/RenzoAL7/GPath
             org.opencontainers.image.revision=${{ github.sha }}
@@ -117,15 +124,40 @@ jobs:
           cache-to: type=gha,mode=max,scope=web
           provenance: true
           sbom: true
-      - name: API image
-        id: api
+
+  package-api:
+    name: Package API image
+    needs: smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.image.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: gpath-release
+          path: public
+      - uses: docker/setup-buildx-action@v3
+      - name: Log in to the existing registry
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build one multi-platform API image
+        id: image
         uses: docker/build-push-action@v6
         with:
           context: .
           target: api
-          platforms: linux/amd64,linux/arm64
+          platforms: ${{ env.IMAGE_PLATFORMS }}
           push: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
-          tags: ghcr.io/renzoal7/gitpath-api:sha-${{ github.sha }}
+          tags: ${{ env.API_IMAGE }}:sha-${{ github.sha }}
           labels: |
             org.opencontainers.image.source=https://github.com/RenzoAL7/GPath
             org.opencontainers.image.revision=${{ github.sha }}
@@ -136,7 +168,7 @@ jobs:
 
   update-gitops:
     name: Propose a reviewed GitOps promotion
-    needs: container
+    needs: [package-web, package-api]
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -155,8 +187,8 @@ jobs:
           path: cortex
       - name: Pin BOTH published digests and activate the new overlay together
         env:
-          WEB_DIGEST: ${{ needs.container.outputs.web-digest }}
-          API_DIGEST: ${{ needs.container.outputs.api-digest }}
+          WEB_DIGEST: ${{ needs.package-web.outputs.digest }}
+          API_DIGEST: ${{ needs.package-api.outputs.digest }}
         run: |
           node scripts/promote.mjs cortex "$WEB_DIGEST" "$API_DIGEST"
           git -C cortex diff --check
@@ -180,8 +212,8 @@ jobs:
 
             - Source: https://github.com/RenzoAL7/GPath/commit/${{ github.sha }}
             - Workflow: https://github.com/RenzoAL7/GPath/actions/runs/${{ github.run_id }}
-            - Web: `ghcr.io/renzoal7/gitpath@${{ needs.container.outputs.web-digest }}`
-            - API: `ghcr.io/renzoal7/gitpath-api@${{ needs.container.outputs.api-digest }}`
+            - Web: `${{ env.WEB_IMAGE }}@${{ needs.package-web.outputs.digest }}`
+            - API: `${{ env.API_IMAGE }}@${{ needs.package-api.outputs.digest }}`
 
             Review both image pins, registry access and ingress routing before merging.
             The first promotion also switches gpath-prod to the growth overlay.
