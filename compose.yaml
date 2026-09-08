@@ -7,6 +7,7 @@ services:
       target: api
     environment:
       RUNTIME_ENV: container
+      JOB_MODE: demo
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]

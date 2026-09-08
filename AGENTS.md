@@ -1,34 +1,48 @@
 # GPath — instrucciones para agentes
 
-## Alcance del repositorio
+## Alcance
 
 - Este repositorio contiene la web React/TypeScript en `src/`, la API Node.js en
   `server/` y sus pruebas en `tests/`.
-- `K3s-Cortex` es un repositorio separado y queda fuera del alcance de este
-  proyecto. No editarlo ni usarlo como destino de cambios de esta aplicación.
-- Mantener la arquitectura actual: web, API y archivos estáticos. No incorporar
-  Supabase, autenticación, cuentas de usuario ni una base de datos de aplicación.
+- GPath es una herramienta de una sola página para consultar tecnologías
+  mencionadas en ofertas públicas. No convertirla en una landing genérica, un
+  tutorial de Git o un panel de infraestructura.
+- `K3s-Cortex` es un repositorio separado y queda fuera del alcance. No editarlo ni
+  usarlo como destino de cambios de esta aplicación.
+
+## Producto y datos
+
+- Mantener seis puestos de entrada: `Intern`, `Practicante` o `Internship`.
+- El modo live debe mostrar la procedencia, fecha de consulta y enlace a la oferta
+  original. El modo demo usa ofertas ficticias y debe decirlo claramente.
+- No presentar una muestra acotada como estadísticas de todo el mercado ni inventar
+  empresas, vacantes activas, fechas o cifras de usuarios.
+- Mantener sincronizados roles, filtros, contrato de API, ubicaciones normalizadas,
+  copy y pruebas. No hacer fallback silencioso a datos globales cuando se filtra.
+- Cualquier filtro geográfico debe separar país específico, remoto LATAM y ubicación
+  desconocida.
+- No incorporar Supabase, autenticación, cuentas de usuario ni una base de datos de
+  aplicación.
+
+## Interfaz
+
+- Usar nombres concretos como «Puesto», «Ver tecnologías» y «Ofertas consultadas».
+- Evitar lemas, invitaciones redundantes y copy genérico. Escribir en español claro,
+  con verbos concretos y tono conversacional.
+- Mantener selector, conteos, denominadores, foco visible, estados de carga, error,
+  reintento y cero resultados.
+- Reutilizar los tokens y las tipografías existentes. No añadir imágenes o
+  animaciones sin una razón específica para esta herramienta.
 
 ## Flujo de trabajo
 
 - No modificar `main`; trabajar en una rama de trabajo.
-- No hacer merge ni push sin aprobación explícita del usuario.
+- Después de implementar y verificar una rama lista, preparar un commit local para
+  que el usuario pueda hacer push y abrir una PR a `main`.
+- No hacer push, merge ni abrir la PR sin aprobación explícita del usuario.
+- Preservar cambios existentes y limitar cada modificación al alcance solicitado.
 - En solicitudes de análisis o planificación, no editar archivos ni ejecutar
   comandos que generen artefactos hasta que el usuario apruebe el plan.
-- Preservar cambios existentes y limitar cada modificación al alcance solicitado.
-
-## Producto y datos
-
-- La demo usa ofertas ficticias. No presentarlas como vacantes activas,
-  estadísticas del mercado, recomendaciones personalizadas ni datos recolectados.
-- Si se amplían roles o filtros, mantener sincronizados el contrato de la API,
-  los tipos de la UI, los datos de ejemplo, el copy y las pruebas.
-- Cualquier filtro geográfico debe definir con claridad país, ciudad, remoto e
-  híbrido. No etiquetar como LATAM una cobertura que no esté respaldada por los
-  datos disponibles.
-- El copy de la interfaz debe estar en español claro, con verbos concretos,
-  tono conversacional y sin frases genéricas o promocionales que oculten el
-  alcance real de la muestra.
 
 ## Verificación
 
@@ -40,6 +54,6 @@ npm run build
 npm run test:e2e
 ```
 
-Revisar también `git status` y el diff final. Si una prueba requiere un
-servicio externo o cambia el entorno, documentar la condición en lugar de
-introducir nuevas dependencias.
+Probar teclado, escritorio y ancho de 320 px; inspeccionar las capturas reales.
+Revisar `git status` y el diff final. No afirmar que la web pública cambió hasta
+verificar el despliegue.

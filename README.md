@@ -4,10 +4,10 @@ Explorador de tecnologías mencionadas en puestos de entrada: el usuario elige u
 roles `Intern`, `Practicante` o `Internship`, filtra por región y revisa las ofertas que
 sustentan los conteos.
 
-**Estado: primera demo funcional.** Contiene 24 ofertas ficticias, señaladas en pantalla.
-Los conteos se calculan en la API y admiten región, país y modalidad. No son vacantes activas
-ni estadísticas del mercado.
-Sin registro, documentos personales, Supabase ni base relacional de aplicación.
+**Estado: primera versión live.** La API consulta feeds públicos de Greenhouse y conserva
+una muestra acotada con enlaces a las publicaciones originales. `JOB_MODE=demo` ofrece 24
+ejemplos ficticios para pruebas deterministas. Los conteos no son estadísticas de todo el
+mercado. No hay registro, documentos personales, Supabase ni base relacional de aplicación.
 
 ## Ejecutar
 
@@ -18,8 +18,13 @@ npm ci
 npm run dev
 ```
 
-Abrir http://127.0.0.1:5173. La API escucha en 8081; la web consulta, por ejemplo,
-`/api/jobs?role=data-intern&region=latam&country=pe&workMode=onsite`.
+Abrir http://127.0.0.1:5173. La API escucha en 8081; por defecto consulta, por ejemplo:
+
+```text
+/api/jobs?role=data-intern&region=latam&country=pe&workMode=onsite
+```
+
+Para capturas y pruebas deterministas, ejecutar la API con `JOB_MODE=demo`.
 
 ```bash
 npm run build
@@ -28,22 +33,23 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
+## Fuentes y filtros
+
+- Greenhouse es la primera fuente live. La API limita las ofertas por fuente y muestra su
+  procedencia, fecha disponible y enlace original.
+- Los filtros aceptan `region=all|latam`, país (`pe`, `mx`, `br`, `cl`, `co` o `unknown`) y
+  modalidad (`remote`, `hybrid`, `onsite` o `unknown`). Los filtros se aplican antes de
+  calcular los porcentajes y no hacen fallback silencioso a la muestra global.
+- El modo demo conserva la misma forma de respuesta y usa ofertas ficticias etiquetadas.
+
 ## Arquitectura y entrega
 
 - Web React/TypeScript en nginx sin privilegios; API Node.js en otro contenedor.
 - El Ingress de k3s enruta `/` a la web y `/api` a la API.
 - Imágenes ARM64/amd64 en GHCR; CI propone sus digests en K3s-Cortex.
 - La promoción exige revisar/fusionar el PR; CI no recibe kubeconfig ni hace deploy directo.
-- Revertir el commit de promoción en Cortex es el mecanismo de rollback.
-- La instalación inicial y la demo con imágenes importadas no prueban por sí solas GitOps.
+- No se necesita Supabase, registro de usuarios ni base relacional. `K3s-Cortex` queda fuera
+  del alcance de los cambios de este repositorio.
 
-Los paquetes existentes mantienen `ghcr.io/renzoal7/gitpath` y `gitpath-api`; no es
-necesario renombrarlos para cambiar el producto. El repositorio se llama `RenzoAL7/GPath`.
-
-## Siguiente etapa
-
-Conectar ofertas públicas Greenhouse mediante un colector periódico, validar y guardar
-snapshots en OCI Object Storage, y servir el último snapshot válido con fecha y procedencia.
-No recolectar en cada visita ni presentar una muestra acotada como todo el mercado.
-
-Instalación y guía para principiantes: `K3s-Cortex/docs/primer-despliegue.md`.
+Los paquetes existentes mantienen `ghcr.io/renzoal7/gitpath` y `gitpath-api`; no es necesario
+renombrarlos. El repositorio se llama `RenzoAL7/GPath`.

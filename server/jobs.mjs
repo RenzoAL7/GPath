@@ -9,6 +9,16 @@ export const roles = {
   'security-intern': 'Cybersecurity Intern',
 }
 
+const entryLevel = /\b(?:intern(?:ship)?|practicante)\b/i
+export const roleMatchers = {
+  'frontend-intern': /\b(?:frontend|front-end|web|ui)\b/i,
+  'backend-intern': /\b(?:backend|back-end|server[- ]side|api)\b/i,
+  'data-intern': /\b(?:data|analytics|etl|machine learning)\b/i,
+  'devops-intern': /\b(?:devops|dev ops|platform|site reliability|\bsre\b|cloud|infrastructure)\b/i,
+  'qa-intern': /\b(?:qa|quality assurance|test(?:ing)?|automation)\b/i,
+  'security-intern': /\b(?:cybersecurity|cyber security|security|appsec|application security)\b/i,
+}
+
 export const filterOptions = {
   region: { all: 'Todas', latam: 'LATAM' },
   country: {
@@ -43,13 +53,23 @@ const rules = [
   ['Python', /\bpython\b/i],
   ['SQL', /\bsql\b/i],
   ['PostgreSQL', /\bpostgres(?:ql)?\b/i],
+  ['MySQL', /\bmysql\b/i],
   ['AWS', /\baws\b/i],
+  ['GCP', /\b(?:gcp|google cloud)\b/i],
+  ['Azure', /\bazure\b/i],
   ['Docker', /\bdocker\b/i],
   ['Kubernetes', /\b(?:kubernetes|k8s|k3s)\b/i],
   ['Terraform', /\bterraform\b/i],
   ['Git', /\bgit\b/i],
-  ['CI/CD', /\bci\s*\/\s*cd\b/i],
+  ['CI/CD', /\bci\s*\/?\s*cd\b|continuous integration|continuous delivery/i],
   ['Linux', /\blinux\b/i],
+  ['Java', /\bjava\b/i],
+  ['Node.js', /\bnode(?:\.js|js)\b/i],
+  ['Redis', /\bredis\b/i],
+  ['Kafka', /\bkafka\b/i],
+  ['Spark', /\bspark\b/i],
+  ['Airflow', /\bairflow\b/i],
+  ['Snowflake', /\bsnowflake\b/i],
   ['Playwright', /\bplaywright\b/i],
   ['Cypress', /\bcypress\b/i],
   ['OWASP', /\bowasp\b/i],
@@ -79,15 +99,16 @@ export function parseJobFilters(searchParams) {
 }
 
 function matchesLocation(job, filters) {
-  if (filters.region === 'latam' && job.region !== 'latam') return false
+  if (filters.region === 'latam' && (job.region || 'unknown') !== 'latam') return false
   if (filters.country !== 'all') {
     if (filters.country === 'unknown') {
-      if (job.region !== 'unknown') return false
+      if ((job.region || 'unknown') !== 'unknown') return false
     } else if (job.country !== filters.country) {
       return false
     }
   }
-  if (filters.workMode !== 'all' && job.workMode !== filters.workMode) return false
+  if (filters.workMode !== 'all' && (job.workMode || 'unknown') !== filters.workMode)
+    return false
   return true
 }
 
@@ -98,10 +119,14 @@ export function analyzeJobs(role, jobs = demoJobs, filters = defaultJobFilters) 
   const selected = unique
     .filter((job) => job.role === role)
     .filter((job) => matchesLocation(job, selectedFilters))
-    .map((job) => ({
-      ...job,
-      skills: rules.filter(([, pattern]) => pattern.test(job.description)).map(([name]) => name),
-    }))
+    .map((job) => {
+      const searchable = [job.title, job.description, job.searchText].filter(Boolean).join(' ')
+      const { searchText: _searchText, ...publicJob } = job
+      return {
+        ...publicJob,
+        skills: rules.filter(([, pattern]) => pattern.test(searchable)).map(([name]) => name),
+      }
+    })
   const skills = rules
     .map(([name]) => {
       const count = selected.filter((job) => job.skills.includes(name)).length
@@ -130,4 +155,9 @@ export function demoAnalysis(role, filters = defaultJobFilters) {
     collectedAt: null,
     source: 'Ofertas ficticias de demostración',
   }
+}
+
+export function matchesRole(role, title) {
+  if (!Object.hasOwn(roleMatchers, role)) throw new RangeError('Invalid role')
+  return entryLevel.test(title) && roleMatchers[role].test(title)
 }

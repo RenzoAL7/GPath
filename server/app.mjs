@@ -8,6 +8,7 @@ export function createApi({
   release: metadata,
   environment = 'local',
   archive = createArchive(),
+  jobs = { read: async (role, filters) => demoAnalysis(role, filters) },
   log = () => {},
 }) {
   const release = parseRelease(metadata)
@@ -47,11 +48,19 @@ export function createApi({
             const role = requestUrl.searchParams.get('role') || 'data-intern'
             if (!Object.hasOwn(roles, role))
               return send(400, { error: 'Selecciona uno de los puestos disponibles.' })
+            let filters
             try {
-              return send(200, demoAnalysis(role, parseJobFilters(requestUrl.searchParams)))
+              filters = parseJobFilters(requestUrl.searchParams)
             } catch (error) {
               if (error instanceof RangeError) return send(400, { error: error.message })
               throw error
+            }
+            try {
+              return send(200, await jobs.read(role, filters))
+            } catch {
+              return send(502, {
+                error: 'No se pudieron consultar las ofertas públicas. Inténtalo de nuevo.',
+              })
             }
           }
           case '/healthz':

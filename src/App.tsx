@@ -1,11 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import {
-  FiArrowRight,
-  FiArrowUpRight,
-  FiBarChart2,
-  FiInfo,
-  FiMapPin,
-} from 'react-icons/fi'
+import { FiArrowRight, FiExternalLink, FiInfo, FiMapPin } from 'react-icons/fi'
 
 type Role =
   | 'frontend-intern'
@@ -24,9 +18,13 @@ type Analysis = {
   role: Role
   label: string
   total: number
-  mode: 'demo'
-  collectedAt: null
+  mode: 'live' | 'demo'
+  collectedAt: string | null
   source: string
+  sourceCount?: number
+  sourceNames?: string[]
+  sampleLimit?: number
+  partial?: boolean
   filters: Filters
   skills: { name: string; count: number; percent: number }[]
   jobs: {
@@ -40,6 +38,9 @@ type Analysis = {
     country: Exclude<Country, 'all' | 'unknown'> | null
     city: string | null
     workMode: Exclude<WorkMode, 'all'>
+    url?: string
+    source?: string
+    updatedAt?: string | null
   }[]
 }
 
@@ -99,6 +100,14 @@ function filterSummary(filters: Filters) {
   return values.length ? values.join(' · ') : 'Todas las ubicaciones'
 }
 
+function formatDate(value: string | null | undefined) {
+  if (!value || !Number.isFinite(Date.parse(value))) return null
+  return new Intl.DateTimeFormat('es-PE', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
+}
+
 export default function App() {
   const [initialSelection] = useState(readSelection)
   const [role, setRole] = useState<Role>(initialSelection.role)
@@ -107,6 +116,8 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const request = useRef<AbortController | null>(null)
+  const live = result?.mode === 'live'
+  const statusText = live ? 'Ofertas públicas' : result ? 'Demo local' : 'Consultando'
 
   async function explore(selectedRole: Role, selectedFilters: Filters) {
     request.current?.abort()
@@ -123,7 +134,7 @@ export default function App() {
       const payload: Analysis = await response.json()
       if (
         payload.role !== selectedRole ||
-        payload.mode !== 'demo' ||
+        !['live', 'demo'].includes(payload.mode) ||
         payload.filters?.region !== selectedFilters.region ||
         payload.filters?.country !== selectedFilters.country ||
         payload.filters?.workMode !== selectedFilters.workMode ||
@@ -134,7 +145,7 @@ export default function App() {
       if (request.current === controller) setResult(payload)
     } catch {
       if (request.current === controller)
-        setError('No se pudieron actualizar los resultados. Comprueba la conexión y vuelve a intentarlo.')
+        setError('No se pudieron actualizar las ofertas. Comprueba la conexión y vuelve a intentarlo.')
     } finally {
       clearTimeout(timeout)
       if (request.current === controller) setLoading(false)
@@ -153,26 +164,23 @@ export default function App() {
     <div className="shell">
       <header className="topbar">
         <a className="brand" href="/" aria-label="GPath, inicio">
-          <span className="brand-mark" aria-hidden="true">
-            g↗
-          </span>
+          <img className="brand-mark" src="/gpath-mark.svg" width="34" height="34" alt="" />
           GPath<span className="brand-detail">Growth Path</span>
         </a>
-        <span className="demo-label">
-          <span aria-hidden="true" /> Muestra de prueba
+        <span className={`status-label ${live ? 'is-live' : 'is-demo'}`}>
+          <span aria-hidden="true" /> {statusText}
         </span>
       </header>
       <main>
         <section className="intro" aria-labelledby="page-title">
-          <p className="eyebrow">PRIMEROS PASOS EN TECNOLOGÍA</p>
           <h1 id="page-title">
             Compara lo que piden
             <br />
             <span>para empezar.</span>
           </h1>
-          <p>
-            Elige un puesto y una región. Verás qué tecnologías aparecen en la muestra, oferta por
-            oferta.
+          <p className="intro-copy">
+            Elige un puesto y una región. Revisa qué tecnologías mencionan las ofertas, una por
+            una.
           </p>
         </section>
         <div className="workspace">
@@ -185,7 +193,7 @@ export default function App() {
               }}
             >
               <label className="filter-label" htmlFor="role">
-                Puesto de entrada
+                Puesto
               </label>
               <select id="role" value={role} onChange={(event) => setRole(event.target.value as Role)}>
                 {choices.map((choice) => (
@@ -258,39 +266,55 @@ export default function App() {
             <div className="sample-note">
               <FiInfo aria-hidden="true" />
               <p>
-                <strong>Es una muestra de prueba.</strong> Hay 24 ofertas ficticias para enseñar el
-                recorrido. No son vacantes activas.
+                {live && result ? (
+                  <>
+                    <strong>Ofertas públicas.</strong> Se consultaron {result.sourceCount || 0}{' '}
+                    fuentes
+                    {formatDate(result.collectedAt) &&
+                      ` · actualizado ${formatDate(result.collectedAt)}`}
+                    {result.partial && ' · una fuente no respondió'}.
+                  </>
+                ) : result ? (
+                  <>
+                    <strong>Demo local.</strong> Hay 24 ofertas ficticias para probar el recorrido;
+                    no son vacantes activas.
+                  </>
+                ) : (
+                  <>
+                    <strong>Consultando ofertas.</strong> Espera un momento para ver el origen de
+                    los datos.
+                  </>
+                )}
               </p>
             </div>
             <details className="method">
               <summary>Cómo se cuentan las tecnologías</summary>
               <p>
-                Cada tecnología cuenta una vez por oferta, aunque aparezca varias veces. El
-                porcentaje se calcula solo sobre las ofertas visibles con tus filtros; no describe
-                todo el mercado ni dice qué deberías estudiar.
+                {live
+                  ? `Cada tecnología cuenta una vez por oferta, aunque se mencione varias veces. La muestra se limita a ${result?.sampleLimit || 6} ofertas por fuente y no representa todo el mercado.`
+                  : 'Cada tecnología cuenta una vez por oferta, aunque aparezca varias veces. El modo demo usa una muestra fija y no representa todo el mercado.'}
               </p>
             </details>
           </aside>
           <section className="results-panel" aria-labelledby="results-title" aria-busy={loading}>
             <div className="panel-heading">
               <div>
-                <p className="eyebrow">TECNOLOGÍAS MENCIONADAS</p>
+                <p className="section-label">Tecnologías mencionadas</p>
                 <h2 id="results-title">{result?.label || 'Cargando la muestra'}</h2>
               </div>
-              <FiBarChart2 className="panel-icon" aria-hidden="true" />
             </div>
             {error && (
               <div className="error-message" role="alert">
                 {error}
-                {result && ' Conservamos el último resultado disponible.'}
+                {result && ' Se muestra el resultado anterior.'}
               </div>
             )}
             <p className="result-summary" role="status">
               {loading
-                ? 'Consultando la muestra…'
+                ? 'Consultando ofertas…'
                 : result
-                  ? `${result.total} ejemplos · ${filterSummary(result.filters)}`
-                  : 'Vuelve a intentarlo para consultar la muestra.'}
+                  ? `${result.total} ${live ? 'ofertas encontradas' : 'ejemplos'} · ${filterSummary(result.filters)}`
+                  : 'Vuelve a intentarlo para consultar las ofertas.'}
             </p>
             {result && result.total > 0 && (
               <>
@@ -299,12 +323,9 @@ export default function App() {
                   <span>Aparece en</span>
                 </div>
                 <ol className="skill-chart">
-                  {result.skills.slice(0, 8).map((skill, index) => (
+                  {result.skills.slice(0, 8).map((skill) => (
                     <li key={skill.name}>
-                      <span className="skill-name">
-                        {skill.name}
-                        {index === 0 && <span className="top-skill">Más frecuente</span>}
-                      </span>
+                      <span className="skill-name">{skill.name}</span>
                       <div className="skill-measure">
                         <progress
                           max="100"
@@ -329,7 +350,7 @@ export default function App() {
             )}
             {result && result.total === 0 && (
               <div className="empty-state">
-                <strong>No hay ejemplos con estos filtros.</strong>
+                <strong>No hay ofertas con estos filtros.</strong>
                 <p>Prueba otra región, país o modalidad para volver a llenar el conteo.</p>
               </div>
             )}
@@ -339,11 +360,11 @@ export default function App() {
           <section className="jobs-section" aria-labelledby="jobs-title">
             <div className="jobs-heading">
               <div>
-                <p className="eyebrow">DE DÓNDE SALE EL CONTEO</p>
-                <h2 id="jobs-title">Ofertas de ejemplo que forman el resultado</h2>
+                <p className="section-label">{live ? 'Ofertas consultadas' : 'Ofertas de ejemplo'}</p>
+                <h2 id="jobs-title">Qué forma el conteo</h2>
               </div>
               <span>
-                {result.total} ejemplos · {filterSummary(result.filters)}
+                {result.total} {live ? 'ofertas' : 'ejemplos'} · {filterSummary(result.filters)}
               </span>
             </div>
             <div className="jobs-grid">
@@ -361,7 +382,20 @@ export default function App() {
                       <li key={skill}>{skill}</li>
                     ))}
                   </ul>
-                  <p className="example-only">Ejemplo ficticio · no admite postulaciones</p>
+                  <div className="job-meta">
+                    {job.url && (
+                      <a className="job-link" href={job.url} target="_blank" rel="noreferrer">
+                        Ver oferta original <FiExternalLink aria-hidden="true" />
+                      </a>
+                    )}
+                    <p className="example-only">
+                      {live
+                        ? [job.source, formatDate(job.updatedAt) && `actualizada ${formatDate(job.updatedAt)}`]
+                            .filter(Boolean)
+                            .join(' · ')
+                        : 'Oferta ficticia'}
+                    </p>
+                  </div>
                 </article>
               ))}
             </div>
@@ -370,11 +404,8 @@ export default function App() {
       </main>
       <footer>
         <p>
-          GPath <span>Una muestra pequeña para empezar con los pies en la tierra.</span>
+          GPath <span>Growth Path</span>
         </p>
-        <a href="https://docs.greenhouse.io/job-board.html" target="_blank" rel="noreferrer">
-          Fuente que evaluaremos después: Greenhouse <FiArrowUpRight aria-hidden="true" />
-        </a>
       </footer>
     </div>
   )

@@ -17,10 +17,18 @@ assert.deepEqual(release, api.release)
 const probe = await (await get('/api/probe')).json()
 assert.equal(probe.revision, release.revision)
 assert.equal(probe.service, 'gpath-api')
-const jobs = await (await get('/api/jobs?role=data-intern&region=all&country=all&workMode=all')).json()
-assert.equal(jobs.mode, 'demo')
-assert.equal(jobs.total, 4)
-assert.equal(jobs.skills.find(skill => skill.name === 'Python').count, 4)
+const jobs = await (
+  await get('/api/jobs?role=data-intern&region=all&country=all&workMode=all')
+).json()
+if (jobs.mode === 'demo') {
+  assert.equal(jobs.total, 4)
+  assert.equal(jobs.skills.find((skill) => skill.name === 'Python').count, 4)
+} else {
+  assert.equal(jobs.mode, 'live')
+  assert.match(jobs.collectedAt, /^\d{4}-\d{2}-\d{2}T/)
+  assert.ok(Array.isArray(jobs.sourceNames))
+  assert.ok(jobs.jobs.every((job) => /^https:\/\//.test(job.url)))
+}
 console.log(
   `Smoke passed: Growth Path web + API, same build ${release.revision.slice(0, 7)}, mode=${jobs.mode}`,
 )

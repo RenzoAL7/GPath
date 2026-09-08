@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { analyzeJobs, demoAnalysis, roles } from '../server/jobs.mjs'
+import { analyzeJobs, demoAnalysis, matchesRole, roles } from '../server/jobs.mjs'
 import { demoJobs } from '../server/demo-jobs.mjs'
 
 test('demo includes six entry-level roles and four examples per role', () => {
@@ -62,4 +62,11 @@ test('unknown roles and filters are rejected; empty samples do not divide by zer
   assert.throws(() => analyzeJobs('invalid'), RangeError)
   assert.throws(() => analyzeJobs('data-intern', demoJobs, { region: 'global' }), RangeError)
   assert.deepEqual(analyzeJobs('backend-intern', []).skills, [])
+})
+
+test('live role matching only accepts entry-level titles', () => {
+  assert.equal(matchesRole('data-intern', 'Data Intern'), true)
+  assert.equal(matchesRole('data-intern', 'Data Internship'), true)
+  assert.equal(matchesRole('data-intern', 'Senior Data Engineer'), false)
+  assert.equal(matchesRole('qa-intern', 'QA Automation Intern'), true)
 })
