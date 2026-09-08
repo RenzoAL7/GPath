@@ -13,7 +13,7 @@ const mode = process.env.JOB_MODE || 'live'
 if (!['live', 'demo'].includes(mode)) throw new Error('Invalid JOB_MODE')
 const jobs =
   mode === 'demo'
-    ? { read: async (role) => demoAnalysis(role) }
+    ? { read: async (role, filters) => demoAnalysis(role, filters) }
     : createGreenhouseJobs({
         sources: parseGreenhouseSources(process.env.GREENHOUSE_BOARDS),
         ttl: Number(process.env.GREENHOUSE_CACHE_SECONDS || 900) * 1000,

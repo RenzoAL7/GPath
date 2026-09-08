@@ -2,13 +2,13 @@ import { createServer } from 'node:http'
 import { randomUUID } from 'node:crypto'
 import { parseRelease } from '../shared/release.mjs'
 import { createArchive } from './archive.mjs'
-import { demoAnalysis, roles } from './jobs.mjs'
+import { demoAnalysis, parseJobFilters, roles } from './jobs.mjs'
 
 export function createApi({
   release: metadata,
   environment = 'local',
   archive = createArchive(),
-  jobs = { read: async (role) => demoAnalysis(role) },
+  jobs = { read: async (role, filters) => demoAnalysis(role, filters) },
   log = () => {},
 }) {
   const release = parseRelease(metadata)
@@ -44,11 +44,19 @@ export function createApi({
       try {
         switch (path) {
           case '/api/jobs': {
-            const role = new URL(req.url, 'http://localhost').searchParams.get('role') || 'data'
+            const requestUrl = new URL(req.url, 'http://localhost')
+            const role = requestUrl.searchParams.get('role') || 'data-intern'
             if (!Object.hasOwn(roles, role))
-              return send(400, { error: 'Selecciona Data Engineer, Backend o DevOps.' })
+              return send(400, { error: 'Selecciona uno de los puestos disponibles.' })
+            let filters
             try {
-              return send(200, await jobs.read(role))
+              filters = parseJobFilters(requestUrl.searchParams)
+            } catch (error) {
+              if (error instanceof RangeError) return send(400, { error: error.message })
+              throw error
+            }
+            try {
+              return send(200, await jobs.read(role, filters))
             } catch {
               return send(502, {
                 error: 'No se pudieron consultar las ofertas públicas. Inténtalo de nuevo.',

@@ -17,7 +17,9 @@ assert.deepEqual(release, api.release)
 const probe = await (await get('/api/probe')).json()
 assert.equal(probe.revision, release.revision)
 assert.equal(probe.service, 'gpath-api')
-const jobs = await (await get('/api/jobs?role=data')).json()
+const jobs = await (
+  await get('/api/jobs?role=data-intern&region=all&country=all&workMode=all')
+).json()
 if (jobs.mode === 'demo') {
   assert.equal(jobs.total, 4)
   assert.equal(jobs.skills.find((skill) => skill.name === 'Python').count, 4)

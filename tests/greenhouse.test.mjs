@@ -7,7 +7,7 @@ const list = {
   jobs: [
     {
       id: 101,
-      title: 'Data Engineer',
+      title: 'Data Intern',
       absolute_url: 'https://acme.example/jobs/101',
       updated_at: '2026-09-06T00:00:00Z',
       location: { name: 'Remote' },
@@ -23,7 +23,7 @@ const list = {
 }
 const detail = {
   id: 101,
-  title: 'Data Engineer',
+  title: 'Data Intern',
   company_name: 'Acme',
   absolute_url: 'https://acme.example/jobs/101',
   updated_at: '2026-09-06T00:00:00Z',
@@ -50,8 +50,8 @@ test('fetches matching posts, strips HTML, analyzes skills and caches the result
       return Response.json(detail)
     },
   })
-  const first = await jobs.read('data')
-  const second = await jobs.read('data')
+  const first = await jobs.read('data-intern', { region: 'all', country: 'all', workMode: 'all' })
+  const second = await jobs.read('data-intern', { region: 'all', country: 'all', workMode: 'all' })
   assert.equal(first.mode, 'live')
   assert.equal(first.total, 1)
   assert.equal(first.sourceCount, 1)

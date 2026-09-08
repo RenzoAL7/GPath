@@ -1,4 +1,4 @@
-import { analyzeJobs, matchesRole, roles } from './jobs.mjs'
+import { analyzeJobs, matchesRole, normalizeJobFilters, roles } from './jobs.mjs'
 
 const apiBase = 'https://boards-api.greenhouse.io/v1/boards'
 const defaultSources = [
@@ -92,6 +92,32 @@ function locationOf(job) {
   return offices.filter(Boolean).join(' · ') || 'Ubicación no indicada'
 }
 
+function normalizeLocation(value) {
+  const location = String(value || '').trim() || 'Ubicación no indicada'
+  const lower = location.toLowerCase()
+  const countries = [
+    ['pe', /\b(?:peru|perú|lima)\b/i],
+    ['mx', /\b(?:mexico|méxico|mexico city|ciudad de méxico)\b/i],
+    ['br', /\b(?:brazil|brasil|são paulo|sao paulo)\b/i],
+    ['cl', /\b(?:chile|santiago)\b/i],
+    ['co', /\b(?:colombia|bogotá|bogota)\b/i],
+  ]
+  const country = countries.find(([, pattern]) => pattern.test(location))?.[0] || null
+  const explicitlyLatam = /\b(?:latam|latin america|latinoamérica|latinoamerica|south america)\b/i.test(
+    location,
+  )
+  const region = country || explicitlyLatam ? 'latam' : 'unknown'
+  const workMode = /\b(?:remote|remoto|fully remote)\b/i.test(lower)
+    ? 'remote'
+    : /\b(?:hybrid|híbrido|hibrido)\b/i.test(lower)
+      ? 'hybrid'
+      : /\b(?:onsite|on-site|office|presencial)\b/i.test(lower)
+        ? 'onsite'
+        : 'unknown'
+  const city = country ? location.split(/[·,]/)[0].trim() || null : null
+  return { region, country, city, workMode, location }
+}
+
 function normalizeJob(source, role, summary, detail) {
   const description = decodeHtml(detail.content || summary.content || '')
   const title = String(detail.title || summary.title || '').trim()
@@ -103,7 +129,7 @@ function normalizeJob(source, role, summary, detail) {
     role,
     company: detail.company_name || summary.company_name || source.name,
     title,
-    location: locationOf(detail.location ? detail : summary),
+    ...normalizeLocation(locationOf(detail.location ? detail : summary)),
     description: description.slice(0, 560),
     searchText: description,
     skills: [],
@@ -161,7 +187,8 @@ export function createGreenhouseJobs({
     return boardInflight
   }
 
-  async function refresh(role) {
+  async function refresh(role, filters) {
+    const selectedFilters = normalizeJobFilters(filters)
     const boards = await readBoards()
     const candidates = boards.flatMap(({ source, jobs }) =>
       jobs
@@ -186,9 +213,9 @@ export function createGreenhouseJobs({
       }),
     )
     const jobs = detailed.filter(Boolean)
-    const sourceNames = [...new Set(jobs.map((job) => job.source))]
+    const sourceNames = boards.filter((board) => board.ok).map(({ source }) => source.name)
     return {
-      ...analyzeJobs(role, jobs),
+      ...analyzeJobs(role, jobs, selectedFilters),
       mode: 'live',
       collectedAt: new Date(clock()).toISOString(),
       source: 'Greenhouse Job Board API',
@@ -200,20 +227,22 @@ export function createGreenhouseJobs({
   }
 
   return {
-    async read(role) {
+    async read(role, filters = {}) {
       if (!Object.hasOwn(roles, role)) throw new RangeError('Invalid role')
-      const cached = resultCache.get(role)
+      const selectedFilters = normalizeJobFilters(filters)
+      const key = `${role}:${selectedFilters.region}:${selectedFilters.country}:${selectedFilters.workMode}`
+      const cached = resultCache.get(key)
       if (cached && clock() - cached.checkedAt < ttl) return cached.value
-      if (!resultInflight.has(role)) {
-        const request = refresh(role)
+      if (!resultInflight.has(key)) {
+        const request = refresh(role, selectedFilters)
           .then((value) => {
-            resultCache.set(role, { checkedAt: clock(), value })
+            resultCache.set(key, { checkedAt: clock(), value })
             return value
           })
-          .finally(() => resultInflight.delete(role))
-        resultInflight.set(role, request)
+          .finally(() => resultInflight.delete(key))
+        resultInflight.set(key, request)
       }
-      return resultInflight.get(role)
+      return resultInflight.get(key)
     },
   }
 }
