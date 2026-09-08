@@ -167,24 +167,37 @@ export default function App() {
           <img className="brand-mark" src="/gpath-mark.svg" width="34" height="34" alt="" />
           GPath<span className="brand-detail">Growth Path</span>
         </a>
+        <nav className="top-nav" aria-label="Secciones">
+          <a href="#explorar">Explorar</a>
+          <a href="#ofertas">Ofertas</a>
+          <a href="#metodo">Método</a>
+        </nav>
         <span className={`status-label ${live ? 'is-live' : 'is-demo'}`}>
           <span aria-hidden="true" /> {statusText}
         </span>
       </header>
       <main>
-        <section className="intro" aria-labelledby="page-title">
-          <h1 id="page-title">
-            Compara lo que piden
-            <br />
-            <span>para empezar.</span>
-          </h1>
-          <p className="intro-copy">
-            Elige un puesto y una región. Revisa qué tecnologías mencionan las ofertas, una por
-            una.
-          </p>
+        <section className="intro">
+          <div className="intro-copy-block">
+            <p className="intro-kicker">Consulta de puestos de entrada</p>
+            <h1 id="page-title">
+              Tecnologías que aparecen
+              <br />
+              <span>en puestos de entrada.</span>
+            </h1>
+            <p className="intro-copy">
+              Elige un puesto y una región. Comparamos las menciones de la muestra, oferta por
+              oferta.
+            </p>
+          </div>
+          <div className="intro-index" aria-hidden="true">
+            <span>01</span>
+            <span>Puesto → filtros → resultado</span>
+          </div>
         </section>
-        <div className="workspace">
+        <div className="workspace" id="explorar">
           <aside className="role-panel">
+            <p className="filter-eyebrow">01 / Define la consulta</p>
             <form
               className="filter-form"
               onSubmit={(event) => {
@@ -287,7 +300,7 @@ export default function App() {
                 )}
               </p>
             </div>
-            <details className="method">
+            <details className="method" id="metodo">
               <summary>Cómo se cuentan las tecnologías</summary>
               <p>
                 {live
@@ -357,7 +370,7 @@ export default function App() {
           </section>
         </div>
         {result && result.total > 0 && (
-          <section className="jobs-section" aria-labelledby="jobs-title">
+          <section className="jobs-section" id="ofertas" aria-labelledby="jobs-title">
             <div className="jobs-heading">
               <div>
                 <p className="section-label">{live ? 'Ofertas consultadas' : 'Ofertas de ejemplo'}</p>
