@@ -228,9 +228,18 @@ export default function App() {
   const [result, setResult] = useState<Analysis | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [technology, setTechnology] = useState<string | null>(null)
   const request = useRef<AbortController | null>(null)
   const live = result?.mode === 'live'
   const statusText = live ? 'Ofertas públicas' : result ? 'Demo local' : 'Consultando'
+  const pending =
+    result &&
+    (role !== result.role ||
+      Object.keys(filters).some(
+        (key) => filters[key as keyof Filters] !== result.filters[key as keyof Filters],
+      ))
+  const visibleJobs =
+    result?.jobs.filter((job) => !technology || job.skills.includes(technology)) || []
 
   async function explore(selectedRole: Role, selectedFilters: Filters) {
     request.current?.abort()
@@ -255,7 +264,10 @@ export default function App() {
         !Array.isArray(payload.skills)
       )
         throw new Error('schema')
-      if (request.current === controller) setResult(payload)
+      if (request.current === controller) {
+        setResult(payload)
+        setTechnology(null)
+      }
     } catch {
       if (request.current === controller)
         setError(
@@ -292,27 +304,9 @@ export default function App() {
         </span>
       </header>
       <main>
-        <section className="intro">
-          <div className="intro-copy-block">
-            <p className="intro-kicker">Consulta de puestos de entrada</p>
-            <h1 id="page-title">
-              Tecnologías que aparecen
-              <br />
-              <span>en puestos de entrada.</span>
-            </h1>
-            <p className="intro-copy">
-              Elige un puesto y una región. Comparamos las menciones de la muestra, oferta por
-              oferta.
-            </p>
-          </div>
-          <div className="intro-index" aria-hidden="true">
-            <span>01</span>
-            <span>Puesto → filtros → resultado</span>
-          </div>
-        </section>
+        <h1 className="sr-only">Tecnologías y ofertas de prácticas</h1>
         <div className="workspace" id="explorar">
           <aside className="role-panel">
-            <p className="filter-eyebrow">01 / Define la consulta</p>
             <form
               className="filter-form"
               onSubmit={(event) => {
@@ -343,9 +337,6 @@ export default function App() {
                   ))}
                 </optgroup>
               </select>
-              <p className="selection-hint">
-                {choices.find((choice) => choice.id === role)?.description}
-              </p>
 
               <fieldset className="region-field">
                 <legend>Región</legend>
@@ -406,7 +397,12 @@ export default function App() {
                 <FiArrowRight aria-hidden="true" />
               </button>
             </form>
-            <p className="share-note">El enlace conserva el puesto y los filtros seleccionados.</p>
+            {pending && (
+              <p className="pending-selection" role="status">
+                Hay filtros pendientes de aplicar. Viendo: {result.label} ·{' '}
+                {filterSummary(result.filters)}.
+              </p>
+            )}
             <div className="sample-note">
               <FiInfo aria-hidden="true" />
               <p>
@@ -469,7 +465,16 @@ export default function App() {
                 <ol className="skill-chart">
                   {result.skills.slice(0, 8).map((skill) => (
                     <li key={skill.name}>
-                      <span className="skill-name">{skill.name}</span>
+                      <button
+                        className="skill-name"
+                        type="button"
+                        aria-pressed={technology === skill.name}
+                        aria-controls="jobs-list"
+                        onClick={() => setTechnology(technology === skill.name ? null : skill.name)}
+                      >
+                        {skill.name}
+                        <FiArrowRight aria-hidden="true" />
+                      </button>
                       <div className="skill-measure">
                         <progress
                           max="100"
@@ -477,10 +482,10 @@ export default function App() {
                           aria-label={`${skill.name}: ${skill.count} de ${result.total} ofertas`}
                         />
                         <span>
-                          <strong>{skill.percent}%</strong>
-                          <small>
+                          <strong>
                             {skill.count} de {result.total}
-                          </small>
+                          </strong>
+                          <small>{skill.percent}%</small>
                         </span>
                       </div>
                     </li>
@@ -499,57 +504,64 @@ export default function App() {
               </div>
             )}
           </section>
-        </div>
-        {result && result.total > 0 && (
-          <section className="jobs-section" id="ofertas" aria-labelledby="jobs-title">
-            <div className="jobs-heading">
-              <div>
-                <p className="section-label">
-                  {live ? 'Ofertas consultadas' : 'Ofertas de ejemplo'}
-                </p>
-                <h2 id="jobs-title">Qué forma el conteo</h2>
+          {result && result.total > 0 && (
+            <section className="jobs-section" id="ofertas" aria-labelledby="jobs-title">
+              <div className="jobs-heading">
+                <div>
+                  <h2 id="jobs-title">{live ? 'Ofertas consultadas' : 'Ofertas de ejemplo'}</h2>
+                </div>
+                <span>
+                  {visibleJobs.length} {live ? 'ofertas' : 'ejemplos'} ·{' '}
+                  {filterSummary(result.filters)}
+                </span>
               </div>
-              <span>
-                {result.total} {live ? 'ofertas' : 'ejemplos'} · {filterSummary(result.filters)}
-              </span>
-            </div>
-            <div className="jobs-grid">
-              {result.jobs.map((job) => (
-                <article className="job-card" key={job.id}>
-                  <p className="company">{job.company}</p>
-                  <h3>{job.title}</h3>
-                  <p className="location">
-                    <FiMapPin aria-hidden="true" />
-                    {job.location}
-                  </p>
-                  <p className="job-description">{job.description}</p>
-                  <ul className="tags" aria-label="Tecnologías mencionadas">
-                    {job.skills.map((skill) => (
-                      <li key={skill}>{skill}</li>
-                    ))}
-                  </ul>
-                  <div className="job-meta">
-                    {job.url && (
-                      <a className="job-link" href={job.url} target="_blank" rel="noreferrer">
-                        Ver oferta original <FiExternalLink aria-hidden="true" />
-                      </a>
-                    )}
-                    <p className="example-only">
-                      {live
-                        ? [
-                            job.source,
-                            formatDate(job.updatedAt) && `actualizada ${formatDate(job.updatedAt)}`,
-                          ]
-                            .filter(Boolean)
-                            .join(' · ')
-                        : 'Oferta ficticia'}
+              {technology && (
+                <button className="clear-filter" type="button" onClick={() => setTechnology(null)}>
+                  {technology} · Quitar filtro ×
+                </button>
+              )}
+              <div className="jobs-grid" id="jobs-list" aria-live="polite">
+                {visibleJobs.map((job) => (
+                  <article className="job-card" key={job.id}>
+                    <p className="company">{job.company}</p>
+                    <h3>{job.title}</h3>
+                    <p className="location">
+                      <FiMapPin aria-hidden="true" />
+                      {job.location}
                     </p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
+                    <details className="job-detail">
+                      <summary>Descripción del puesto</summary>
+                      <p className="job-description">{job.description}</p>
+                    </details>
+                    <ul className="tags" aria-label="Tecnologías mencionadas">
+                      {job.skills.map((skill) => (
+                        <li key={skill}>{skill}</li>
+                      ))}
+                    </ul>
+                    <div className="job-meta">
+                      {job.url && (
+                        <a className="job-link" href={job.url} target="_blank" rel="noreferrer">
+                          Ver oferta original <FiExternalLink aria-hidden="true" />
+                        </a>
+                      )}
+                      <p className="example-only">
+                        {live
+                          ? [
+                              job.source,
+                              formatDate(job.updatedAt) &&
+                                `actualizada ${formatDate(job.updatedAt)}`,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')
+                          : 'Oferta ficticia'}
+                      </p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
       </main>
       <footer>
         <p>

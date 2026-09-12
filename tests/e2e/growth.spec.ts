@@ -18,6 +18,7 @@ test('demo calculates entry-level roles and shows the supporting examples', asyn
   )
 
   await page.getByLabel('Puesto').selectOption('devops-intern')
+  await expect(page.getByText(/Hay filtros pendientes de aplicar/)).toBeVisible()
   await page.getByRole('button', { name: 'Ver tecnologías' }).click()
   await expect(page.locator('#results-title')).toHaveText('DevOps Intern')
   await expect(page.getByRole('progressbar', { name: 'Linux: 4 de 4 ofertas' })).toHaveAttribute(
@@ -33,6 +34,33 @@ test('demo calculates entry-level roles and shows the supporting examples', asyn
   await page.getByRole('button', { name: 'Ver tecnologías' }).click()
   await expect(page.locator('#results-title')).toHaveText('QA Automation Intern')
   await expect(page.locator('.example-only')).toHaveCount(4)
+})
+
+test('technology filters evidence and resets on a successful query', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('.job-card')).toHaveCount(4)
+  await page.getByRole('button', { name: 'Docker', exact: true }).click()
+  await expect(page.locator('.job-card')).toHaveCount(1)
+  await expect(page.locator('.job-card .tags')).toContainText('Docker')
+  await page.getByRole('button', { name: /Quitar filtro/ }).click()
+  await expect(page.locator('.job-card')).toHaveCount(4)
+  await page.getByRole('button', { name: 'Docker', exact: true }).click()
+  await page.getByLabel('Puesto').selectOption('backend-intern')
+  await page.getByRole('button', { name: 'Ver tecnologías' }).click()
+  await expect(page.locator('#results-title')).toHaveText('Backend Intern')
+  await expect(page.getByRole('button', { name: /Quitar filtro/ })).toHaveCount(0)
+  await expect(page.locator('.job-card')).toHaveCount(4)
+})
+
+test('technology filter supports keyboard interaction', async ({ page }) => {
+  await page.goto('/')
+  const docker = page.getByRole('button', { name: 'Docker', exact: true })
+  await docker.focus()
+  await page.keyboard.press('Enter')
+  await expect(docker).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('.job-card')).toHaveCount(1)
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.job-card')).toHaveCount(4)
 })
 
 test('region and country filters show only matching examples', async ({ page }) => {
