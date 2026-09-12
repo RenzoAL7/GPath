@@ -5,21 +5,23 @@
 @import '@fontsource/ibm-plex-sans/latin-600.css';
 :root {
   font-family: 'IBM Plex Sans', sans-serif;
-  color: #182b42;
-  background: #f3f6fa;
+  color: #24243a;
+  background: #f1f0f8;
   font-synthesis: none;
-  --ink: #182b42;
-  --blue: #224d88;
-  --muted: #5c6b7e;
-  --line: #dce4ed;
-  --white: #fff;
-  --canvas: #f3f6fa;
-  --selected: #eaf0f8;
-  --control-border: #bac9db;
-  --blue-hover: #173e75;
+  --ink: #24243a;
+  --blue: #5a43b8;
+  --blue-hover: #40308d;
+  --teal: #17756f;
+  --signal: #e5a43b;
+  --muted: #5e6078;
+  --line: #d7d8e7;
+  --white: #fffdf8;
+  --canvas: #f1f0f8;
+  --selected: #eeeaff;
+  --control-border: #aaabc4;
   --radius-sm: 4px;
-  --radius-control: 6px;
-  --radius-panel: 8px;
+  --radius-control: 7px;
+  --radius-panel: 12px;
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -37,6 +39,8 @@
 }
 body {
   margin: 0;
+  min-width: 320px;
+  background: var(--canvas);
 }
 a {
   color: inherit;
@@ -70,7 +74,7 @@ button:disabled {
   opacity: 0.65;
 }
 :focus-visible {
-  outline: 3px solid #b8421e;
+  outline: 3px solid var(--signal);
   outline-offset: 4px;
 }
 p,
@@ -97,13 +101,19 @@ h3 {
   align-items: center;
   gap: 24px;
   min-height: 84px;
-  border-bottom: 1px solid var(--line);
+  margin: 0 -48px;
+  padding: 0 48px;
+  border-bottom: 0;
+  border-radius: 0 0 14px 14px;
+  background: var(--ink);
+  color: var(--white);
 }
 .brand {
   display: flex;
   align-items: center;
   gap: 10px;
   text-decoration: none;
+  color: var(--white);
   font:
     600 25px 'Space Grotesk',
     sans-serif;
@@ -114,8 +124,8 @@ h3 {
   height: 34px;
 }
 .brand-detail {
-  color: var(--muted);
-  border-left: 1px solid var(--line);
+  color: #c3c1d6;
+  border-left: 1px solid #5d5b77;
   padding-left: 16px;
   margin-left: 6px;
   font:
@@ -130,11 +140,11 @@ h3 {
 }
 .top-nav a {
   font-size: 13px;
-  color: var(--muted);
+  color: #c3c1d6;
   text-decoration: none;
 }
 .top-nav a:hover {
-  color: var(--blue);
+  color: #f2c36b;
   text-decoration: underline;
 }
 .status-label {
@@ -142,16 +152,16 @@ h3 {
   align-items: center;
   gap: 7px;
   font-size: var(--text-meta);
-  color: var(--muted);
+  color: #c3c1d6;
 }
 .status-label > span {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #b8421e;
+  background: var(--signal);
 }
 .status-label.is-live > span {
-  background: #2e7a58;
+  background: #69c5a1;
 }
 .workspace {
   display: grid;
@@ -162,7 +172,7 @@ h3 {
 }
 .role-panel {
   grid-column: 1 / -1;
-  padding-bottom: 20px;
+  padding: 24px 0 22px;
   border-bottom: 1px solid var(--line);
   min-width: 0;
 }
@@ -224,6 +234,7 @@ label[for='work-mode'],
   border: 1px solid var(--control-border);
   border-radius: var(--radius-control);
   height: 44px;
+  background: #e5e4f0;
 }
 .segmented button {
   flex: 1;
@@ -236,7 +247,7 @@ label[for='work-mode'],
 .segmented button.active {
   color: var(--blue);
   background: var(--white);
-  box-shadow: 0 1px 3px #182b421a;
+  box-shadow: 0 1px 3px #24243a1a;
   font-weight: 600;
 }
 .explore-button {
@@ -292,10 +303,12 @@ label[for='work-mode'],
   min-width: 0;
   background: var(--white);
   border: 1px solid var(--line);
+  border-top: 4px solid var(--blue);
   border-radius: var(--radius-panel);
   padding: 28px;
   position: sticky;
   top: 24px;
+  box-shadow: 0 12px 26px #24243a0d;
 }
 .section-label {
   color: var(--muted);
@@ -334,15 +347,15 @@ label[for='work-mode'],
   gap: 12px;
   align-items: center;
   padding: 13px 0;
-  border-bottom: 1px solid #f0f3f7;
+  border-bottom: 1px solid #eeedf4;
   transition: background-color 160ms ease;
 }
 .skill-chart li.is-selected {
   background: var(--selected);
-  box-shadow: inset 3px 0 var(--blue);
+  box-shadow: inset 3px 0 var(--signal);
 }
 .skill-chart li:has(.skill-name:hover) {
-  background: var(--canvas);
+  background: #f8f7fc;
 }
 .skill-chart li.is-selected:has(.skill-name:hover) {
   background: var(--selected);
@@ -385,19 +398,19 @@ label[for='work-mode'],
   width: 100%;
   min-width: 0;
   height: 5px;
-  background: #edf1f6;
+  background: #e7e6f0;
   border-radius: 3px;
 }
 .skill-measure progress::-webkit-progress-bar {
-  background: #edf1f6;
+  background: #e7e6f0;
   border-radius: 3px;
 }
 .skill-measure progress::-webkit-progress-value {
-  background: #416799;
+  background: var(--teal);
   border-radius: 3px;
 }
 .skill-measure progress::-moz-progress-bar {
-  background: #416799;
+  background: var(--teal);
   border-radius: 3px;
 }
 .skill-measure > span {
@@ -435,9 +448,9 @@ label[for='work-mode'],
   margin-bottom: 6px;
 }
 .error-message {
-  background: #fff1ed;
-  color: #8a3119;
-  border: 1px solid #ebc7b7;
+  background: #fff0ed;
+  color: #8f3a32;
+  border: 1px solid #e9b9ad;
   border-radius: var(--radius-control);
   padding: 12px;
   margin-top: 16px;
@@ -468,8 +481,14 @@ label[for='work-mode'],
 }
 .job-card {
   min-width: 0;
-  padding: 22px 0;
+  padding: 22px 14px;
   border-bottom: 1px solid var(--line);
+  border-left: 3px solid transparent;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+.job-card:hover {
+  border-left-color: var(--signal);
+  background: #faf9fd;
 }
 .company {
   font-size: var(--text-body);
@@ -513,8 +532,8 @@ label[for='work-mode'],
   list-style: none;
 }
 .tags li {
-  background: #e7edf5;
-  color: #36577d;
+  background: #e9e6fb;
+  color: #4b3e98;
   padding: 3px 7px;
   border-radius: 3px;
   font-size: 11px;
@@ -532,7 +551,7 @@ label[for='work-mode'],
   gap: 5px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--blue);
+  color: var(--teal);
   text-decoration: none;
 }
 .job-link:hover {
@@ -545,15 +564,15 @@ label[for='work-mode'],
 .clear-filter {
   min-height: 44px;
   padding: 7px 12px;
-  border: 1px solid var(--blue);
+  border: 1px solid var(--teal);
   border-radius: 5px;
   background: var(--white);
-  color: var(--blue);
+  color: var(--teal);
   margin-top: 14px;
   font-size: var(--text-meta);
 }
 .clear-filter:hover {
-  background: var(--selected);
+  background: #e8f4f1;
 }
 .ranking-hint,
 .update-note {
@@ -595,6 +614,10 @@ footer span {
   .shell {
     padding: 0 24px;
   }
+  .topbar {
+    margin-inline: -24px;
+    padding-inline: 24px;
+  }
   .workspace {
     gap: 24px;
   }
@@ -632,6 +655,8 @@ footer span {
   }
   .topbar {
     min-height: 72px;
+    margin-inline: -18px;
+    padding-inline: 18px;
     justify-content: space-between;
     gap: 10px;
   }
