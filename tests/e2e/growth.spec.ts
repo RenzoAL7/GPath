@@ -42,6 +42,7 @@ test('technology filters evidence and resets on a successful query', async ({ pa
   await page.getByRole('button', { name: 'Docker', exact: true }).click()
   await expect(page.locator('.job-card')).toHaveCount(1)
   await expect(page.locator('.job-card .tags')).toContainText('Docker')
+  await expect(page.locator('.skill-chart .is-selected')).toContainText('Docker')
   await page.getByRole('button', { name: /Quitar filtro/ }).click()
   await expect(page.locator('.job-card')).toHaveCount(4)
   await page.getByRole('button', { name: 'Docker', exact: true }).click()
@@ -50,6 +51,48 @@ test('technology filters evidence and resets on a successful query', async ({ pa
   await expect(page.locator('#results-title')).toHaveText('Backend Intern')
   await expect(page.getByRole('button', { name: /Quitar filtro/ })).toHaveCount(0)
   await expect(page.locator('.job-card')).toHaveCount(4)
+})
+
+test('loading reserves space and updating keeps previous evidence visible', async ({ page }) => {
+  let release!: () => void
+  let gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await page.route('**/api/jobs?*', async (route) => {
+    await gate
+    await route.continue()
+  })
+  await page.goto('/')
+  await expect(page.locator('.loading-placeholder')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Actualizando…' })).toBeDisabled()
+  release()
+  await expect(page.locator('.job-card')).toHaveCount(4)
+  gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await page.getByLabel('Puesto').selectOption('backend-intern')
+  await page.getByRole('button', { name: 'Ver tecnologías' }).click()
+  await expect(page.locator('.update-note')).toBeVisible()
+  await expect(page.locator('.job-card')).toHaveCount(4)
+  await expect(page.locator('#results-title')).toHaveText('Data Intern')
+  release()
+  await expect(page.locator('#results-title')).toHaveText('Backend Intern')
+  await expect(page.locator('.update-note')).toHaveCount(0)
+})
+
+test('tablet keeps filters and results within the viewport', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 820, height: 1180 })
+  await page.goto('/')
+  await expect(page.locator('.job-card')).toHaveCount(4)
+  await expect(page.locator('.job-card').first().locator('> :first-child')).toHaveJSProperty(
+    'tagName',
+    'H3',
+  )
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.screenshot({
+    path: `artifacts/refinement-tablet-${testInfo.project.name}.png`,
+    fullPage: true,
+  })
 })
 
 test('technology filter supports keyboard interaction', async ({ page }) => {
