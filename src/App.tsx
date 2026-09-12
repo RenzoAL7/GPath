@@ -456,15 +456,31 @@ export default function App() {
                   ? `${result.total} ${live ? 'ofertas encontradas' : 'ejemplos'} · ${filterSummary(result.filters)}`
                   : 'Vuelve a intentarlo para consultar las ofertas.'}
             </p>
+            {loading && result && (
+              <p className="update-note">
+                El resultado anterior sigue disponible mientras actualizamos.
+              </p>
+            )}
+            {loading && !result && (
+              <div className="loading-placeholder" aria-hidden="true">
+                {Array.from({ length: 6 }, (_, index) => (
+                  <div key={index}>
+                    <span />
+                    <span />
+                  </div>
+                ))}
+              </div>
+            )}
             {result && result.total > 0 && (
               <>
+                <p className="ranking-hint">Selecciona una tecnología para ver sus ofertas.</p>
                 <div className="chart-head">
                   <span>Tecnología</span>
                   <span>Aparece en</span>
                 </div>
                 <ol className="skill-chart">
                   {result.skills.slice(0, 8).map((skill) => (
-                    <li key={skill.name}>
+                    <li key={skill.name} className={technology === skill.name ? 'is-selected' : ''}>
                       <button
                         className="skill-name"
                         type="button"
@@ -523,8 +539,8 @@ export default function App() {
               <div className="jobs-grid" id="jobs-list" aria-live="polite">
                 {visibleJobs.map((job) => (
                   <article className="job-card" key={job.id}>
-                    <p className="company">{job.company}</p>
                     <h3>{job.title}</h3>
+                    <p className="company">{job.company}</p>
                     <p className="location">
                       <FiMapPin aria-hidden="true" />
                       {job.location}
