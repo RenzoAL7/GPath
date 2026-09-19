@@ -1,559 +1,666 @@
 import { useEffect, useRef, useState } from 'react'
-import { FiArrowRight, FiExternalLink, FiInfo, FiMapPin } from 'react-icons/fi'
+import { FiArrowRight, FiExternalLink, FiInfo, FiPlus, FiX } from 'react-icons/fi'
 
-type Role =
-  | 'frontend-intern'
-  | 'backend-intern'
-  | 'data-intern'
-  | 'devops-intern'
-  | 'qa-intern'
-  | 'security-intern'
-  | 'data-engineer-intern'
-  | 'data-engineering-intern'
-  | 'data-infrastructure-intern'
-  | 'data-platform-intern'
-  | 'cloud-engineer-intern'
-  | 'cloud-infrastructure-intern'
-  | 'platform-engineer-intern'
-  | 'infrastructure-engineer-intern'
-  | 'mlops-intern'
-  | 'machine-learning-engineer-intern'
-  | 'ml-engineer-intern'
-  | 'ai-engineer-intern'
-  | 'software-engineer-intern-data'
-  | 'software-engineer-intern-infrastructure'
-  | 'software-engineer-intern-backend'
-  | 'sre-intern'
-  | 'site-reliability-engineer-intern'
-  | 'big-data-intern'
-  | 'analytics-engineer-intern'
-  | 'dataops-intern'
-type Region = 'all' | 'latam'
-type Country = 'all' | 'pe' | 'mx' | 'br' | 'cl' | 'co' | 'unknown'
-type WorkMode = 'all' | 'remote' | 'hybrid' | 'onsite' | 'unknown'
-type Filters = { region: Region; country: Country; workMode: WorkMode }
-type Selection = { role: Role; filters: Filters }
+type TargetRoleId =
+  | 'data-analyst'
+  | 'data-engineer'
+  | 'backend-developer'
+  | 'cloud-devops'
+  | 'machine-learning'
+  | 'other'
+type ProfileLevel = 'practicante' | 'internship' | 'junior'
+type Preference = 'pe' | 'latam' | 'any'
 
-type Analysis = {
-  role: Role
-  label: string
-  total: number
-  mode: 'live' | 'demo'
-  collectedAt: string | null
-  source: string
-  sourceCount?: number
-  sourceNames?: string[]
-  sampleLimit?: number
-  partial?: boolean
-  filters: Filters
-  skills: { name: string; count: number; percent: number }[]
-  jobs: {
+type Profile = {
+  level: ProfileLevel
+  skills: string[]
+  preference: Preference
+}
+
+type AnalyzeRequest = {
+  targetRole: TargetRoleId
+  profile: Profile
+  url?: string
+  description?: string
+}
+
+type AnalysisResult = {
+  input: { type: 'url' | 'text'; originalUrl?: string }
+  targetRole: { id: TargetRoleId; label: string }
+  compatibility: {
+    score: number
+    label: string
+    recommendation: string
+    scope: 'profile' | 'target'
+  }
+  factors: {
     id: string
-    company: string
-    title: string
-    location: string
-    description: string
-    skills: string[]
-    region: 'latam' | 'unknown'
-    country: Exclude<Country, 'all' | 'unknown'> | null
-    city: string | null
-    workMode: Exclude<WorkMode, 'all'>
-    url?: string
-    source?: string
-    updatedAt?: string | null
+    label: string
+    score: number | null
+    weight: number
+    contribution: number
+    detail: string
   }[]
+  requirements: {
+    technical: string[]
+    preferred: string[]
+    level: string | null
+    location: string | null
+    workMode: string | null
+    salary: string | null
+  }
+  profile: { provided: boolean; matched: string[]; gaps: string[] }
+  evidence: { label: string; text: string }[]
+  explanation: string
+  limitations: string[]
 }
 
-const familyChoices: { id: Role; name: string; description: string }[] = [
+const targetRoles: { id: TargetRoleId; name: string; description: string }[] = [
+  { id: 'data-analyst', name: 'Data Analyst', description: 'Análisis, métricas y consultas.' },
+  { id: 'data-engineer', name: 'Data Engineer', description: 'Pipelines, datos y plataformas.' },
+  { id: 'backend-developer', name: 'Backend Developer', description: 'APIs y servicios.' },
+  { id: 'cloud-devops', name: 'Cloud / DevOps', description: 'Cloud y automatización.' },
   {
-    id: 'frontend-intern',
-    name: 'Frontend Intern',
-    description: 'Interfaces y experiencia de usuario',
+    id: 'machine-learning',
+    name: 'IA / Machine Learning',
+    description: 'Modelos y productos de IA.',
   },
-  { id: 'backend-intern', name: 'Backend Intern', description: 'APIs y servicios' },
-  { id: 'data-intern', name: 'Data Intern', description: 'Datos y consultas' },
-  { id: 'devops-intern', name: 'DevOps Intern', description: 'Cloud y automatización' },
-  { id: 'qa-intern', name: 'QA Automation Intern', description: 'Pruebas y calidad' },
-  { id: 'security-intern', name: 'Cybersecurity Intern', description: 'Seguridad web' },
+  { id: 'other', name: 'Otro', description: 'Otro puesto técnico.' },
 ]
 
-const specificChoices: { id: Role; name: string; description: string }[] = [
-  {
-    id: 'data-engineer-intern',
-    name: 'Data Engineer Intern',
-    description: 'Pipelines y almacenes de datos',
-  },
-  {
-    id: 'data-engineering-intern',
-    name: 'Data Engineering Intern',
-    description: 'Procesamiento y calidad de datos',
-  },
-  {
-    id: 'data-infrastructure-intern',
-    name: 'Data Infrastructure Intern',
-    description: 'Plataformas para mover y servir datos',
-  },
-  {
-    id: 'data-platform-intern',
-    name: 'Data Platform Intern',
-    description: 'Servicios y herramientas para datos',
-  },
-  {
-    id: 'cloud-engineer-intern',
-    name: 'Cloud Engineer Intern',
-    description: 'Servicios cloud y automatización',
-  },
-  {
-    id: 'cloud-infrastructure-intern',
-    name: 'Cloud Infrastructure Intern',
-    description: 'Redes, compute y plataformas cloud',
-  },
-  {
-    id: 'platform-engineer-intern',
-    name: 'Platform Engineer Intern',
-    description: 'Plataformas internas y developer tooling',
-  },
-  {
-    id: 'infrastructure-engineer-intern',
-    name: 'Infrastructure Engineer Intern',
-    description: 'Infraestructura y sistemas',
-  },
-  { id: 'mlops-intern', name: 'MLOps Intern', description: 'Pipelines y operación de modelos' },
-  {
-    id: 'machine-learning-engineer-intern',
-    name: 'Machine Learning Engineer Intern',
-    description: 'Modelos y sistemas de machine learning',
-  },
-  { id: 'ml-engineer-intern', name: 'ML Engineer Intern', description: 'Modelos y sistemas de ML' },
-  {
-    id: 'ai-engineer-intern',
-    name: 'AI Engineer Intern',
-    description: 'Aplicaciones y sistemas de IA',
-  },
-  {
-    id: 'software-engineer-intern-data',
-    name: 'Software Engineer Intern Data',
-    description: 'Software para datos',
-  },
-  {
-    id: 'software-engineer-intern-infrastructure',
-    name: 'Software Engineer Intern Infrastructure',
-    description: 'Software para infraestructura',
-  },
-  {
-    id: 'software-engineer-intern-backend',
-    name: 'Software Engineer Intern Backend',
-    description: 'Servicios y APIs',
-  },
-  { id: 'sre-intern', name: 'SRE Intern', description: 'Fiabilidad y operación' },
-  {
-    id: 'site-reliability-engineer-intern',
-    name: 'Site Reliability Engineer Intern',
-    description: 'Fiabilidad y operación',
-  },
-  {
-    id: 'big-data-intern',
-    name: 'Big Data Intern',
-    description: 'Procesamiento de grandes volúmenes',
-  },
-  {
-    id: 'analytics-engineer-intern',
-    name: 'Analytics Engineer Intern',
-    description: 'Modelado y análisis',
-  },
-  { id: 'dataops-intern', name: 'DataOps Intern', description: 'Automatización de datos' },
+const levels: { id: ProfileLevel; name: string }[] = [
+  { id: 'practicante', name: 'Practicante' },
+  { id: 'internship', name: 'Internship' },
+  { id: 'junior', name: 'Junior' },
 ]
 
-const choices = [...familyChoices, ...specificChoices]
+const preferences: { id: Preference; name: string }[] = [
+  { id: 'pe', name: 'Perú' },
+  { id: 'latam', name: 'Remoto LATAM' },
+  { id: 'any', name: 'Cualquiera' },
+]
 
-const countryLabels: Record<Country, string> = {
-  all: 'Todos',
-  pe: 'Perú',
-  mx: 'México',
-  br: 'Brasil',
-  cl: 'Chile',
-  co: 'Colombia',
-  unknown: 'Ubicación desconocida',
-}
-const workModeLabels: Record<WorkMode, string> = {
-  all: 'Todas',
-  remote: 'Remoto',
-  hybrid: 'Híbrido',
-  onsite: 'Presencial',
-  unknown: 'Sin modalidad indicada',
-}
-const countries: Country[] = ['all', 'pe', 'mx', 'br', 'cl', 'co', 'unknown']
-const workModes: WorkMode[] = ['all', 'remote', 'hybrid', 'onsite', 'unknown']
-const defaultFilters: Filters = { region: 'all', country: 'all', workMode: 'all' }
+const analysisSteps = [
+  'Leyendo la oferta.',
+  'Extrayendo requisitos.',
+  'Comparando con tu perfil.',
+  'Generando la explicación.',
+]
 
-function readSelection(): Selection {
-  const params = new URLSearchParams(window.location.search)
-  const roleValue = params.get('role')
-  const role = choices.some((choice) => choice.id === roleValue)
-    ? (roleValue as Role)
-    : 'data-intern'
-  const countryValue = params.get('country') as Country | null
-  const workModeValue = params.get('workMode') as WorkMode | null
-  return {
-    role,
-    filters: {
-      region: params.get('region') === 'latam' ? 'latam' : 'all',
-      country: countryValue && countries.includes(countryValue) ? countryValue : 'all',
-      workMode: workModeValue && workModes.includes(workModeValue) ? workModeValue : 'all',
-    },
+function isHttpUrl(value: string) {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:'
+  } catch {
+    return false
   }
 }
 
-function filterSummary(filters: Filters) {
-  const values = [
-    filters.region === 'latam' ? 'LATAM' : null,
-    filters.country !== 'all' ? countryLabels[filters.country] : null,
-    filters.workMode !== 'all' ? workModeLabels[filters.workMode] : null,
-  ].filter(Boolean)
-  return values.length ? values.join(' · ') : 'Todas las ubicaciones'
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
-function formatDate(value: string | null | undefined) {
-  if (!value || !Number.isFinite(Date.parse(value))) return null
-  return new Intl.DateTimeFormat('es-PE', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value))
+function parseResult(value: unknown): AnalysisResult {
+  const result = value as AnalysisResult | null
+  if (
+    !result ||
+    !['url', 'text'].includes(result.input?.type) ||
+    typeof result.targetRole?.id !== 'string' ||
+    typeof result.targetRole?.label !== 'string' ||
+    !Number.isFinite(result.compatibility?.score) ||
+    !['profile', 'target'].includes(result.compatibility?.scope) ||
+    typeof result.compatibility?.label !== 'string' ||
+    typeof result.compatibility?.recommendation !== 'string' ||
+    !Array.isArray(result.factors) ||
+    !result.factors.every(
+      (factor) =>
+        typeof factor.id === 'string' &&
+        typeof factor.label === 'string' &&
+        (factor.score === null || Number.isFinite(factor.score)) &&
+        Number.isFinite(factor.weight) &&
+        Number.isFinite(factor.contribution) &&
+        typeof factor.detail === 'string',
+    ) ||
+    !isStringArray(result.requirements?.technical) ||
+    !isStringArray(result.requirements?.preferred) ||
+    !isStringArray(result.profile?.matched) ||
+    !isStringArray(result.profile?.gaps) ||
+    typeof result.profile?.provided !== 'boolean' ||
+    !Array.isArray(result.evidence) ||
+    !result.evidence.every(
+      (evidence) => typeof evidence.label === 'string' && typeof evidence.text === 'string',
+    ) ||
+    typeof result.explanation !== 'string' ||
+    !isStringArray(result.limitations)
+  ) {
+    throw new Error('Respuesta inválida')
+  }
+  return result
+}
+
+function safeExternalUrl(value: string | undefined) {
+  return value && isHttpUrl(value) ? value : null
+}
+
+function sourceValidation(url: string, description: string) {
+  const hasUrl = Boolean(url.trim())
+  const hasDescription = Boolean(description.trim())
+  if (hasUrl && hasDescription) return 'Usa solo una fuente: enlace o descripción.'
+  if (!hasUrl && !hasDescription) return 'Agrega un enlace público o pega la descripción de la oferta.'
+  if (hasUrl && !isHttpUrl(url.trim())) return 'Usa un enlace HTTPS público válido.'
+  return ''
+}
+
+function listOrEmpty(values: string[], emptyText: string) {
+  if (!values.length) return <p className="empty-list">{emptyText}</p>
+  return (
+    <ul className="result-tags">
+      {values.map((value) => (
+        <li key={value}>{value}</li>
+      ))}
+    </ul>
+  )
 }
 
 export default function App() {
-  const [initialSelection] = useState(readSelection)
-  const [role, setRole] = useState<Role>(initialSelection.role)
-  const [filters, setFilters] = useState<Filters>(initialSelection.filters)
-  const [result, setResult] = useState<Analysis | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [targetRole, setTargetRole] = useState<TargetRoleId>('data-analyst')
+  const [profile, setProfile] = useState<Profile>({
+    level: 'junior',
+    skills: [],
+    preference: 'any',
+  })
+  const [skillDraft, setSkillDraft] = useState('')
+  const [url, setUrl] = useState('')
+  const [description, setDescription] = useState('')
+  const [result, setResult] = useState<AnalysisResult | null>(null)
+  const [lastRequest, setLastRequest] = useState<AnalyzeRequest | null>(null)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const request = useRef<AbortController | null>(null)
-  const live = result?.mode === 'live'
-  const statusText = live ? 'Ofertas públicas' : result ? 'Demo local' : 'Consultando'
 
-  async function explore(selectedRole: Role, selectedFilters: Filters) {
+  const validation = sourceValidation(url, description)
+  const canSubmit = !loading && !validation
+  const hasUrl = Boolean(url.trim())
+  const hasDescription = Boolean(description.trim())
+  const hasProfileSkills = Boolean(lastRequest?.profile.skills.length)
+  const compatibilityWithTarget = result
+    ? !hasProfileSkills || result.compatibility.scope === 'target'
+    : false
+  const originalUrl = result?.input.type === 'url' ? safeExternalUrl(result.input.originalUrl) : null
+
+  useEffect(
+    () => () => {
+      request.current?.abort()
+    },
+    [],
+  )
+
+  function addSkill() {
+    const candidates = skillDraft
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean)
+    if (!candidates.length) return
+    setProfile((current) => {
+      const existing = new Set(current.skills.map((skill) => skill.toLocaleLowerCase()))
+      const next = candidates.filter((skill) => !existing.has(skill.toLocaleLowerCase()))
+      return { ...current, skills: [...current.skills, ...next].slice(0, 12) }
+    })
+    setSkillDraft('')
+  }
+
+  function removeSkill(skill: string) {
+    setProfile((current) => ({
+      ...current,
+      skills: current.skills.filter((value) => value !== skill),
+    }))
+  }
+
+  function requestFromForm(): AnalyzeRequest | null {
+    if (validation) return null
+    const common = { targetRole, profile: { ...profile, skills: [...profile.skills] } }
+    return hasUrl ? { ...common, url: url.trim() } : { ...common, description: description.trim() }
+  }
+
+  async function analyze(input: AnalyzeRequest) {
     request.current?.abort()
     const controller = new AbortController()
     request.current = controller
+    setLastRequest(input)
     setLoading(true)
     setError('')
-    const query = new URLSearchParams({ role: selectedRole, ...selectedFilters })
-    window.history.replaceState(null, '', `${window.location.pathname}?${query.toString()}`)
-    const timeout = setTimeout(() => controller.abort(), 8000)
+    const timeout = window.setTimeout(() => controller.abort(), 40_000)
     try {
-      const response = await fetch(`/api/jobs?${query.toString()}`, { signal: controller.signal })
-      if (!response.ok) throw new Error('api')
-      const payload: Analysis = await response.json()
-      if (
-        payload.role !== selectedRole ||
-        !['live', 'demo'].includes(payload.mode) ||
-        payload.filters?.region !== selectedFilters.region ||
-        payload.filters?.country !== selectedFilters.country ||
-        payload.filters?.workMode !== selectedFilters.workMode ||
-        !Array.isArray(payload.jobs) ||
-        !Array.isArray(payload.skills)
-      )
-        throw new Error('schema')
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(input),
+      })
+      if (!response.ok) {
+        const problem = (await response.json().catch(() => null)) as { error?: unknown } | null
+        throw new Error(
+          typeof problem?.error === 'string'
+            ? problem.error
+            : 'No pudimos analizar la oferta. Vuelve a intentarlo.',
+        )
+      }
+      const payload = parseResult(await response.json())
       if (request.current === controller) setResult(payload)
-    } catch {
+    } catch (reason) {
       if (request.current === controller)
         setError(
-          'No se pudieron actualizar las ofertas. Comprueba la conexión y vuelve a intentarlo.',
+          reason instanceof Error && reason.message
+            ? reason.message
+            : 'No pudimos analizar la oferta. Comprueba el enlace o pega la descripción y vuelve a intentarlo.',
         )
     } finally {
-      clearTimeout(timeout)
+      window.clearTimeout(timeout)
       if (request.current === controller) setLoading(false)
     }
   }
 
-  useEffect(() => {
-    void explore(initialSelection.role, initialSelection.filters)
-    return () => {
-      request.current?.abort()
-      request.current = null
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const input = requestFromForm()
+    if (!input) {
+      setError(validation)
+      return
     }
-  }, [])
+    void analyze(input)
+  }
 
   return (
     <div className="shell">
       <header className="topbar">
         <a className="brand" href="/" aria-label="GPath, inicio">
           <img className="brand-mark" src="/gpath-mark.svg" width="34" height="34" alt="" />
-          GPath<span className="brand-detail">Growth Path</span>
+          GPath<span className="brand-detail">Analizador de ofertas</span>
         </a>
-        <nav className="top-nav" aria-label="Secciones">
-          <a href="#explorar">Explorar</a>
-          <a href="#ofertas">Ofertas</a>
-          <a href="#metodo">Método</a>
-        </nav>
-        <span className={`status-label ${live ? 'is-live' : 'is-demo'}`}>
-          <span aria-hidden="true" /> {statusText}
+        <span className="status-label">
+          <span aria-hidden="true" /> Análisis orientativo
         </span>
       </header>
       <main>
-        <section className="intro">
+        <section className="intro" aria-labelledby="page-title">
           <div className="intro-copy-block">
-            <p className="intro-kicker">Consulta de puestos de entrada</p>
+            <p className="intro-kicker">Oferta encontrada por ti</p>
             <h1 id="page-title">
-              Tecnologías que aparecen
-              <br />
-              <span>en puestos de entrada.</span>
+              Pega una oferta laboral y descubre qué piden, cuánto encajas y qué te falta para
+              postular.
             </h1>
-            <p className="intro-copy">
-              Elige un puesto y una región. Comparamos las menciones de la muestra, oferta por
-              oferta.
-            </p>
           </div>
-          <div className="intro-index" aria-hidden="true">
-            <span>01</span>
-            <span>Puesto → filtros → resultado</span>
-          </div>
+          <p className="intro-index">Puesto → perfil → análisis</p>
         </section>
-        <div className="workspace" id="explorar">
-          <aside className="role-panel">
-            <p className="filter-eyebrow">01 / Define la consulta</p>
-            <form
-              className="filter-form"
-              onSubmit={(event) => {
-                event.preventDefault()
-                void explore(role, filters)
-              }}
-            >
-              <label className="filter-label" htmlFor="role">
-                Puesto
-              </label>
-              <select
-                id="role"
-                value={role}
-                onChange={(event) => setRole(event.target.value as Role)}
-              >
-                <optgroup label="Familias">
-                  {familyChoices.map((choice) => (
-                    <option key={choice.id} value={choice.id}>
-                      {choice.name}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Puestos específicos">
-                  {specificChoices.map((choice) => (
-                    <option key={choice.id} value={choice.id}>
-                      {choice.name}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-              <p className="selection-hint">
-                {choices.find((choice) => choice.id === role)?.description}
-              </p>
 
-              <fieldset className="region-field">
-                <legend>Región</legend>
-                <div className="segmented" role="group" aria-label="Región">
-                  {(['all', 'latam'] as Region[]).map((value) => (
+        <div className="workspace" id="analizador">
+          <aside className="role-panel" aria-labelledby="profile-title">
+            <p className="filter-eyebrow">01 / Tu objetivo</p>
+            <h2 id="profile-title">¿Qué puesto buscas?</h2>
+            <div className="role-choices" role="group" aria-label="Puesto objetivo">
+              {targetRoles.map((choice) => (
+                <button
+                  key={choice.id}
+                  className={`role-choice ${targetRole === choice.id ? 'active' : ''}`}
+                  type="button"
+                  aria-pressed={targetRole === choice.id}
+                  disabled={loading}
+                  onClick={() => setTargetRole(choice.id)}
+                >
+                  <strong>{choice.name}</strong>
+                  <span>{choice.description}</span>
+                </button>
+              ))}
+            </div>
+
+            <section className="profile-form" aria-labelledby="profile-details-title">
+              <h3 id="profile-details-title">Tu perfil</h3>
+              <fieldset>
+                <legend>Nivel</legend>
+                <div className="segmented three-options" role="group" aria-label="Nivel">
+                  {levels.map((level) => (
                     <button
-                      key={value}
-                      className={filters.region === value ? 'active' : ''}
-                      aria-pressed={filters.region === value}
+                      key={level.id}
                       type="button"
-                      onClick={() => setFilters((current) => ({ ...current, region: value }))}
+                      className={profile.level === level.id ? 'active' : ''}
+                      aria-pressed={profile.level === level.id}
+                      disabled={loading}
+                      onClick={() => setProfile((current) => ({ ...current, level: level.id }))}
                     >
-                      {value === 'all' ? 'Todas' : 'LATAM'}
+                      {level.name}
                     </button>
                   ))}
                 </div>
               </fieldset>
 
-              <label className="filter-label" htmlFor="country">
-                País o cobertura
-              </label>
-              <select
-                id="country"
-                value={filters.country}
-                onChange={(event) =>
-                  setFilters((current) => ({ ...current, country: event.target.value as Country }))
-                }
-              >
-                {countries.map((value) => (
-                  <option key={value} value={value}>
-                    {countryLabels[value]}
-                  </option>
-                ))}
-              </select>
+              <div className="skills-field">
+                <label htmlFor="skills">Habilidades actuales</label>
+                <p>Agrega tecnologías o conocimientos que ya manejas.</p>
+                <div className="skill-input-row">
+                  <input
+                    id="skills"
+                    value={skillDraft}
+                    disabled={loading || profile.skills.length >= 12}
+                    placeholder="Ej. Python, SQL"
+                    onChange={(event) => setSkillDraft(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ',') {
+                        event.preventDefault()
+                        addSkill()
+                      }
+                    }}
+                    onBlur={addSkill}
+                  />
+                  <button
+                    className="add-skill-button"
+                    type="button"
+                    disabled={loading || !skillDraft.trim() || profile.skills.length >= 12}
+                    onClick={addSkill}
+                  >
+                    <FiPlus aria-hidden="true" /> <span>Agregar</span>
+                  </button>
+                </div>
+                {profile.skills.length > 0 && (
+                  <ul className="skill-chips" aria-label="Habilidades agregadas">
+                    {profile.skills.map((skill) => (
+                      <li key={skill}>
+                        {skill}
+                        <button
+                          type="button"
+                          disabled={loading}
+                          onClick={() => removeSkill(skill)}
+                          aria-label={`Eliminar ${skill}`}
+                        >
+                          <FiX aria-hidden="true" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
 
-              <label className="filter-label" htmlFor="work-mode">
-                Modalidad
-              </label>
-              <select
-                id="work-mode"
-                value={filters.workMode}
-                onChange={(event) =>
-                  setFilters((current) => ({
-                    ...current,
-                    workMode: event.target.value as WorkMode,
-                  }))
-                }
-              >
-                {workModes.map((value) => (
-                  <option key={value} value={value}>
-                    {workModeLabels[value]}
-                  </option>
-                ))}
-              </select>
+              <fieldset>
+                <legend>Modalidad preferida</legend>
+                <div className="segmented three-options" role="group" aria-label="Modalidad preferida">
+                  {preferences.map((preference) => (
+                    <button
+                      key={preference.id}
+                      type="button"
+                      className={profile.preference === preference.id ? 'active' : ''}
+                      aria-pressed={profile.preference === preference.id}
+                      disabled={loading}
+                      onClick={() =>
+                        setProfile((current) => ({ ...current, preference: preference.id }))
+                      }
+                    >
+                      {preference.name}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            </section>
+            <p className="privacy-note">
+              Estas selecciones se usan solo para el análisis actual; no creamos cuentas ni
+              guardamos un CV.
+            </p>
+          </aside>
 
-              <button className="explore-button" disabled={loading} type="submit">
-                {loading ? 'Actualizando…' : 'Ver tecnologías'}
+          <section className="analyzer-panel" aria-labelledby="analyzer-title" aria-busy={loading}>
+            <div className="panel-heading">
+              <div>
+                <p className="section-label">02 / Analiza una oferta</p>
+                <h2 id="analyzer-title">Analizador de ofertas</h2>
+              </div>
+            </div>
+
+            <form className="analyze-form" onSubmit={submit}>
+              <label className="field-label" htmlFor="offer-url">
+                Pega el enlace público de la oferta
+              </label>
+              <input
+                id="offer-url"
+                type="url"
+                inputMode="url"
+                placeholder="https://empresa.com/carreras/..."
+                value={url}
+                disabled={loading || hasDescription}
+                aria-describedby="source-help"
+                onChange={(event) => {
+                  const value = event.target.value
+                  setUrl(value)
+                  if (value.trim()) setDescription('')
+                }}
+              />
+              <p className="source-separator" aria-hidden="true">
+                o
+              </p>
+              <label className="field-label" htmlFor="offer-description">
+                Si no pudimos leer el enlace, pega aquí la descripción de la oferta.
+              </label>
+              <textarea
+                id="offer-description"
+                rows={7}
+                placeholder="Pega el texto de la vacante tal como lo encontraste."
+                value={description}
+                disabled={loading || hasUrl}
+                aria-describedby="source-help"
+                onChange={(event) => {
+                  const value = event.target.value
+                  setDescription(value)
+                  if (value.trim()) setUrl('')
+                }}
+              />
+              <p className={`source-help ${validation ? 'has-warning' : ''}`} id="source-help">
+                {validation || 'Usa una sola fuente por análisis.'}
+              </p>
+              <button className="analyze-button" disabled={!canSubmit} type="submit">
+                {loading ? 'Analizando oferta…' : 'Analizar oferta'}
                 <FiArrowRight aria-hidden="true" />
               </button>
             </form>
-            <p className="share-note">El enlace conserva el puesto y los filtros seleccionados.</p>
-            <div className="sample-note">
-              <FiInfo aria-hidden="true" />
-              <p>
-                {live && result ? (
-                  <>
-                    <strong>Ofertas públicas.</strong> Se consultaron {result.sourceCount || 0}{' '}
-                    fuentes
-                    {formatDate(result.collectedAt) &&
-                      ` · actualizado ${formatDate(result.collectedAt)}`}
-                    {result.partial && ' · una fuente no respondió'}.
-                  </>
-                ) : result ? (
-                  <>
-                    <strong>Demo local.</strong> Hay 24 ofertas ficticias para probar el recorrido;
-                    no son vacantes activas.
-                  </>
-                ) : (
-                  <>
-                    <strong>Consultando ofertas.</strong> Espera un momento para ver el origen de
-                    los datos.
-                  </>
-                )}
-              </p>
-            </div>
-            <details className="method" id="metodo">
-              <summary>Cómo se cuentan las tecnologías</summary>
-              <p>
-                {live
-                  ? `Cada tecnología cuenta una vez por oferta, aunque se mencione varias veces. La muestra se limita a ${result?.sampleLimit || 6} ofertas por fuente y no representa todo el mercado.`
-                  : 'Cada tecnología cuenta una vez por oferta, aunque aparezca varias veces. El modo demo usa una muestra fija y no representa todo el mercado.'}
-              </p>
-            </details>
-          </aside>
-          <section className="results-panel" aria-labelledby="results-title" aria-busy={loading}>
-            <div className="panel-heading">
-              <div>
-                <p className="section-label">Tecnologías mencionadas</p>
-                <h2 id="results-title">{result?.label || 'Cargando la muestra'}</h2>
-              </div>
-            </div>
-            {error && (
-              <div className="error-message" role="alert">
-                {error}
-                {result && ' Se muestra el resultado anterior.'}
-              </div>
-            )}
-            <p className="result-summary" role="status">
-              {loading
-                ? 'Consultando ofertas…'
-                : result
-                  ? `${result.total} ${live ? 'ofertas encontradas' : 'ejemplos'} · ${filterSummary(result.filters)}`
-                  : 'Vuelve a intentarlo para consultar las ofertas.'}
-            </p>
-            {result && result.total > 0 && (
-              <>
-                <div className="chart-head">
-                  <span>Tecnología</span>
-                  <span>Aparece en</span>
-                </div>
-                <ol className="skill-chart">
-                  {result.skills.slice(0, 8).map((skill) => (
-                    <li key={skill.name}>
-                      <span className="skill-name">{skill.name}</span>
-                      <div className="skill-measure">
-                        <progress
-                          max="100"
-                          value={skill.percent}
-                          aria-label={`${skill.name}: ${skill.count} de ${result.total} ofertas`}
-                        />
-                        <span>
-                          <strong>{skill.percent}%</strong>
-                          <small>
-                            {skill.count} de {result.total}
-                          </small>
-                        </span>
-                      </div>
+
+            {loading && (
+              <section className="progress-panel" aria-label="Progreso del análisis">
+                <p role="status" aria-live="polite">
+                  Analizando la oferta. Puede tardar un momento.
+                </p>
+                <ol>
+                  {analysisSteps.map((step, index) => (
+                    <li className={index === 0 ? 'current' : ''} key={step}>
+                      <span aria-hidden="true">{index === 0 ? '•' : '○'}</span>
+                      {step}
                     </li>
                   ))}
                 </ol>
-                <p className="chart-caption">
-                  Los porcentajes no tienen que sumar 100%: una oferta puede mencionar varias
-                  tecnologías.
-                </p>
-              </>
+              </section>
             )}
-            {result && result.total === 0 && (
-              <div className="empty-state">
-                <strong>No hay ofertas con estos filtros.</strong>
-                <p>Prueba otra región, país o modalidad para volver a llenar el conteo.</p>
+
+            {error && (
+              <div className="error-message" role="alert">
+                <p>{error}</p>
+                {result && <p>Se mantiene el último resultado mientras vuelves a intentarlo.</p>}
+                {lastRequest && !loading && (
+                  <button className="retry-button" type="button" onClick={() => void analyze(lastRequest)}>
+                    Reintentar análisis
+                  </button>
+                )}
               </div>
+            )}
+
+            {!result && !loading && !error && (
+              <div className="empty-state">
+                <strong>El análisis aparecerá aquí.</strong>
+                <p>
+                  Elige tu puesto objetivo y agrega un enlace público o la descripción de la
+                  oferta.
+                </p>
+              </div>
+            )}
+
+            {result && (
+              <section className="analysis-result" aria-labelledby="compatibility-title">
+                <div className="result-topline">
+                  <span>
+                    {result.input.type === 'url'
+                      ? 'Oferta leída desde el enlace'
+                      : 'Descripción pegada por ti'}
+                  </span>
+                  <span>{result.targetRole.label}</span>
+                </div>
+                <div className="compatibility-heading">
+                  <div>
+                    <p className="section-label">Compatibilidad</p>
+                    <h2 id="compatibility-title">
+                      {compatibilityWithTarget
+                        ? 'Compatibilidad con el puesto objetivo'
+                        : 'Compatibilidad con tu perfil'}
+                    </h2>
+                    <p className="compatibility-label">{result.compatibility.label}</p>
+                    <p className="recommendation">{result.compatibility.recommendation}</p>
+                  </div>
+                  <div
+                    className="score-card"
+                    aria-label={`Compatibilidad ${Math.round(result.compatibility.score)} de 100`}
+                  >
+                    <strong>{Math.round(result.compatibility.score)}</strong>
+                    <span>de 100</span>
+                    <progress
+                      max="100"
+                      value={Math.max(0, Math.min(100, result.compatibility.score))}
+                    />
+                  </div>
+                </div>
+
+                {compatibilityWithTarget && (
+                  <div className="profile-warning">
+                    <FiInfo aria-hidden="true" />
+                    <p>
+                      Perfil incompleto: agrega tus habilidades actuales para calcular una
+                      compatibilidad personal.
+                    </p>
+                  </div>
+                )}
+
+                <section className="factor-section" aria-labelledby="factors-title">
+                  <h3 id="factors-title">Cómo se calculó</h3>
+                  <p>
+                    El puntaje es orientativo y se calcula en el backend con factores visibles;
+                    la explicación no decide el puntaje.
+                  </p>
+                  <ul className="factor-list">
+                    {result.factors.map((factor) => (
+                      <li key={factor.id}>
+                        <div>
+                          <strong>{factor.label}</strong>
+                          <span>{factor.detail}</span>
+                        </div>
+                        <p>
+                          <b>
+                            {factor.score === null ? 'No evaluado' : `${Math.round(factor.score)} / 100`}
+                          </b>
+                          <span>
+                            Peso {Math.round(factor.weight)}% · aporta{' '}
+                            {Math.round(factor.contribution)} puntos
+                          </span>
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+
+                <div className="result-columns">
+                  <section aria-labelledby="requirements-title">
+                    <h3 id="requirements-title">Ellos piden</h3>
+                    <h4>Técnicas</h4>
+                    {listOrEmpty(
+                      result.requirements.technical,
+                      'No se identificaron requisitos técnicos claros.',
+                    )}
+                    <h4>Deseables</h4>
+                    {listOrEmpty(
+                      result.requirements.preferred,
+                      'No se identificaron requisitos deseables claros.',
+                    )}
+                  </section>
+                  <section aria-labelledby="match-title">
+                    <h3 id="match-title">Tú cumples</h3>
+                    {listOrEmpty(result.profile.matched, 'No se identificaron coincidencias personales.')}
+                    <h3 className="gap-heading">Te falta</h3>
+                    {listOrEmpty(result.profile.gaps, 'No se identificaron brechas concretas.')}
+                  </section>
+                </div>
+
+                <section className="offer-details" aria-labelledby="details-title">
+                  <h3 id="details-title">Lo que indica la oferta</h3>
+                  <dl>
+                    <div>
+                      <dt>Nivel detectado</dt>
+                      <dd>{result.requirements.level || 'No indicado'}</dd>
+                    </div>
+                    <div>
+                      <dt>Ubicación</dt>
+                      <dd>{result.requirements.location || 'No indicada'}</dd>
+                    </div>
+                    <div>
+                      <dt>Modalidad</dt>
+                      <dd>{result.requirements.workMode || 'No indicada'}</dd>
+                    </div>
+                    {result.requirements.salary && (
+                      <div>
+                        <dt>Salario</dt>
+                        <dd>{result.requirements.salary}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </section>
+
+                <section className="explanation-section" aria-labelledby="explanation-title">
+                  <h3 id="explanation-title">Explicación</h3>
+                  <p>{result.explanation}</p>
+                </section>
+
+                <section className="evidence-section" aria-labelledby="evidence-title">
+                  <h3 id="evidence-title">Evidencias de la oferta</h3>
+                  {result.evidence.length ? (
+                    <ul>
+                      {result.evidence.map((evidence) => (
+                        <li key={`${evidence.label}-${evidence.text}`}>
+                          <strong>{evidence.label}</strong>
+                          <blockquote>{evidence.text}</blockquote>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="empty-list">No se devolvieron evidencias textuales.</p>
+                  )}
+                </section>
+
+                <section className="limitations" aria-labelledby="limitations-title">
+                  <h3 id="limitations-title">Limitaciones del análisis</h3>
+                  {result.limitations.length ? (
+                    <ul>
+                      {result.limitations.map((limitation) => (
+                        <li key={limitation}>{limitation}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="empty-list">No se informaron limitaciones adicionales.</p>
+                  )}
+                </section>
+
+                {originalUrl && (
+                  <a className="original-link" href={originalUrl} target="_blank" rel="noreferrer">
+                    Ver oferta original <FiExternalLink aria-hidden="true" />
+                  </a>
+                )}
+              </section>
             )}
           </section>
         </div>
-        {result && result.total > 0 && (
-          <section className="jobs-section" id="ofertas" aria-labelledby="jobs-title">
-            <div className="jobs-heading">
-              <div>
-                <p className="section-label">
-                  {live ? 'Ofertas consultadas' : 'Ofertas de ejemplo'}
-                </p>
-                <h2 id="jobs-title">Qué forma el conteo</h2>
-              </div>
-              <span>
-                {result.total} {live ? 'ofertas' : 'ejemplos'} · {filterSummary(result.filters)}
-              </span>
-            </div>
-            <div className="jobs-grid">
-              {result.jobs.map((job) => (
-                <article className="job-card" key={job.id}>
-                  <p className="company">{job.company}</p>
-                  <h3>{job.title}</h3>
-                  <p className="location">
-                    <FiMapPin aria-hidden="true" />
-                    {job.location}
-                  </p>
-                  <p className="job-description">{job.description}</p>
-                  <ul className="tags" aria-label="Tecnologías mencionadas">
-                    {job.skills.map((skill) => (
-                      <li key={skill}>{skill}</li>
-                    ))}
-                  </ul>
-                  <div className="job-meta">
-                    {job.url && (
-                      <a className="job-link" href={job.url} target="_blank" rel="noreferrer">
-                        Ver oferta original <FiExternalLink aria-hidden="true" />
-                      </a>
-                    )}
-                    <p className="example-only">
-                      {live
-                        ? [
-                            job.source,
-                            formatDate(job.updatedAt) && `actualizada ${formatDate(job.updatedAt)}`,
-                          ]
-                            .filter(Boolean)
-                            .join(' · ')
-                        : 'Oferta ficticia'}
-                    </p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
       </main>
       <footer>
         <p>
-          GPath <span>Growth Path</span>
+          GPath <span>Analizador de ofertas</span>
         </p>
       </footer>
     </div>

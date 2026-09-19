@@ -10,3 +10,13 @@ public/release.json
 public/licenses/
 artifacts/
 test-results/
+
+# Private inference artifacts are mounted at runtime, never versioned.
+models/
+.model-cache/
+*.gguf
+*.onnx
+*.safetensors
+*.pt
+*.pth
+*JobBERT*.tar.gz

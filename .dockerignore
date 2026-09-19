@@ -12,3 +12,14 @@ tests
 test-results
 artifacts
 docs
+
+# Models are runtime-only mounts. Keep weights and archives out of every image
+# build context, including an accidental local cache.
+models/
+.model-cache/
+*.gguf
+*.onnx
+*.safetensors
+*.pt
+*.pth
+*JobBERT*.tar.gz
