@@ -42,16 +42,17 @@ const skillCatalog = [
   ['Excel', /\b(?:excel|spreadsheets?)\b/i, ['excel', 'spreadsheet', 'spreadsheets']],
   ['Power BI', /\bpower\s*bi\b/i, ['power bi', 'powerbi']],
   ['Tableau', /\btableau\b/i, ['tableau']],
-  ['Python', /\bpython\b/i, ['python']],
+  ['Python', /\b(?:python|phyton)\b/i, ['python', 'phyton']],
   ['R', /\b(?:r language|r programming)\b/i, ['r', 'r language', 'r programming']],
   ['Pandas', /\bpandas\b/i, ['pandas']],
   ['Scikit-learn', /\b(?:scikit[- ]?learn|sklearn)\b/i, ['scikit learn', 'scikitlearn', 'sklearn']],
   ['TensorFlow', /\btensorflow\b/i, ['tensorflow']],
   ['PyTorch', /\bpytorch\b/i, ['pytorch']],
-  ['Machine Learning', /\b(?:machine learning|aprendizaje autom[aá]tico)\b/i, [
-    'machine learning',
-    'aprendizaje automatico',
-  ]],
+  [
+    'Machine Learning',
+    /\b(?:machine learning|aprendizaje autom[aá]tico)\b/i,
+    ['machine learning', 'aprendizaje automatico'],
+  ],
   ['JavaScript', /\bjavascript\b/i, ['javascript']],
   ['TypeScript', /\btypescript\b/i, ['typescript']],
   ['Node.js', /\bnode(?:\.js|js)?\b/i, ['node', 'nodejs', 'node js', 'node.js']],
@@ -72,11 +73,11 @@ const skillCatalog = [
   ['Spark', /\b(?:apache )?spark\b/i, ['spark', 'apache spark']],
   ['dbt', /\bdbt\b/i, ['dbt']],
   ['Kafka', /\bkafka\b/i, ['kafka']],
-  ['CI/CD', /\b(?:ci\s*\/?\s*cd|continuous integration|continuous delivery)\b/i, [
-    'ci cd',
-    'continuous integration',
-    'continuous delivery',
-  ]],
+  [
+    'CI/CD',
+    /\b(?:ci\s*\/?\s*cd|continuous integration|continuous delivery)\b/i,
+    ['ci cd', 'continuous integration', 'continuous delivery'],
+  ],
 ]
 
 const latinAmerica = [
@@ -156,14 +157,21 @@ function parsedSkills(value) {
 }
 
 function parsedProfile(value) {
-  if (!isRecord(value)) throw new AnalysisInputError('Completa el nivel y la modalidad preferida.')
+  if (!isRecord(value)) throw new AnalysisInputError('Completa el nivel de tu perfil.')
   const level = text(value.level).toLocaleLowerCase('es')
-  const preferenceSource = text(value.preference || value.locationPreference).toLocaleLowerCase('es')
-  const preference = preferenceSource === 'peru' || preferenceSource === 'perú' ? 'pe' : preferenceSource
+  const preferenceSource = text(value.preference || value.locationPreference).toLocaleLowerCase(
+    'es',
+  )
+  const preference = preferenceSource
+    ? preferenceSource === 'peru' || preferenceSource === 'perú'
+      ? 'pe'
+      : preferenceSource
+    : null
   if (!profileLevels.has(level)) throw new AnalysisInputError('Selecciona un nivel válido.')
-  if (!locationPreferences.has(preference))
-    throw new AnalysisInputError('Selecciona una modalidad preferida válida.')
-  return { level, skills: parsedSkills(value.skills), preference }
+  if (preference !== null && !locationPreferences.has(preference))
+    throw new AnalysisInputError('La preferencia de ubicación no es válida.')
+  const skills = parsedSkills(value.skills)
+  return preference === null ? { level, skills } : { level, skills, preference }
 }
 
 /** Validates input before any offer URL is requested. */
@@ -175,7 +183,9 @@ export function parseAnalysisRequest(value) {
   const url = text(value.url)
   const description = text(value.description || value.text)
   if (Boolean(url) === Boolean(description))
-    throw new AnalysisInputError('Pega un enlace público o la descripción de la oferta, pero no ambos.')
+    throw new AnalysisInputError(
+      'Pega un enlace público o la descripción de la oferta, pero no ambos.',
+    )
   if (url.length > 2048) throw new AnalysisInputError('El enlace es demasiado largo.')
   if (description.length > maxDescriptionLength)
     throw new AnalysisInputError('La descripción supera el tamaño permitido.', {
@@ -206,23 +216,45 @@ function decodeHtml(value) {
     ndash: '–',
     quot: '"',
   }
-  return value.replace(/&(?:#(\d+)|#x([\da-f]+)|([a-z]+));/gi, (match, decimal, hexadecimal, name) => {
-    if (decimal) return String.fromCodePoint(Number(decimal))
-    if (hexadecimal) return String.fromCodePoint(Number.parseInt(hexadecimal, 16))
-    return named[name.toLocaleLowerCase('en')] || match
-  })
+  return value.replace(
+    /&(?:#(\d+)|#x([\da-f]+)|([a-z]+));/gi,
+    (match, decimal, hexadecimal, name) => {
+      if (decimal) return String.fromCodePoint(Number(decimal))
+      if (hexadecimal) return String.fromCodePoint(Number.parseInt(hexadecimal, 16))
+      return named[name.toLocaleLowerCase('en')] || match
+    },
+  )
+}
+
+function metadataOfferText(value) {
+  const fragments = []
+  for (const match of value.matchAll(/<meta\b[^>]*>/gi)) {
+    const attributes = Object.fromEntries(
+      [...match[0].matchAll(/([\w:-]+)\s*=\s*(["'])([\s\S]*?)\2/gi)].map(([, name, , content]) => [
+        name.toLocaleLowerCase('en'),
+        content,
+      ]),
+    )
+    const name = (attributes.name || attributes.property || '').toLocaleLowerCase('en')
+    if ((name === 'description' || name === 'og:description') && attributes.content)
+      fragments.push(attributes.content)
+  }
+  return fragments.join('\n')
 }
 
 /** Removes markup and scripts without executing any content from the offer. */
 export function cleanOfferText(value) {
   if (typeof value !== 'string') return ''
-  return decodeHtml(
-    value
-      .replace(/<\s*(?:script|style|noscript|svg|canvas|iframe)[\s\S]*?<\s*\/\s*(?:script|style|noscript|svg|canvas|iframe)\s*>/gi, ' ')
-      .replace(/<\s*br\s*\/?>/gi, '\n')
-      .replace(/<\s*\/\s*(?:p|div|li|h[1-6]|section|article|tr)\s*>/gi, '\n')
-      .replace(/<[^>]*>/g, ' '),
-  )
+  const metadata = metadataOfferText(value)
+  const visibleText = value
+    .replace(
+      /<\s*(?:script|style|noscript|svg|canvas|iframe)[\s\S]*?<\s*\/\s*(?:script|style|noscript|svg|canvas|iframe)\s*>/gi,
+      ' ',
+    )
+    .replace(/<\s*br\s*\/?>/gi, '\n')
+    .replace(/<\s*\/\s*(?:p|div|li|h[1-6]|section|article|tr)\s*>/gi, '\n')
+    .replace(/<[^>]*>/g, ' ')
+  return decodeHtml([visibleText, metadata].filter(Boolean).join('\n'))
     .replace(/\r/g, '')
     .replace(/[ \t\f\v]+/g, ' ')
     .replace(/\n\s*\n+/g, '\n')
@@ -302,9 +334,8 @@ export function extractOfferFacts(cleanedText, targetRole = 'other') {
   for (const [name, pattern] of skillCatalog) {
     const line = firstEvidence(lines, pattern)
     if (!line) continue
-    const isPreferred = /\b(?:deseable|preferido|preferible|plus|nice to have|valorable|ideal)\b/i.test(
-      line,
-    )
+    const isPreferred =
+      /\b(?:deseable|preferido|preferible|plus|nice to have|valorable|ideal)\b/i.test(line)
     ;(isPreferred ? preferred : technical).push(name)
     evidence.push({ label: isPreferred ? 'Deseable' : 'Requisito técnico', text: shorten(line) })
   }
@@ -321,7 +352,8 @@ export function extractOfferFacts(cleanedText, targetRole = 'other') {
   const location = locationEvidence ? locationFromText(locationEvidence) : null
   const workMode = locationEvidence ? workModeFromText(locationEvidence) : null
   const salary = salaryEvidence ? salaryFromText(salaryEvidence) : null
-  if (levelEvidence && level) evidence.push({ label: 'Nivel detectado', text: shorten(levelEvidence) })
+  if (levelEvidence && level)
+    evidence.push({ label: 'Nivel detectado', text: shorten(levelEvidence) })
   if (locationEvidence && (location || workMode))
     evidence.push({ label: 'Ubicación y modalidad', text: shorten(locationEvidence) })
   if (salaryEvidence && salary) evidence.push({ label: 'Salario', text: shorten(salaryEvidence) })
@@ -363,15 +395,22 @@ function mergeValidatedModelFacts(base, candidate, source) {
   if (!isRecord(candidate)) return base
   const technical = uniqueSkills([
     ...base.technical,
-    ...(Array.isArray(candidate.technical) ? candidate.technical.map((item) => validModelSkill(item, source)) : []),
+    ...(Array.isArray(candidate.technical)
+      ? candidate.technical.map((item) => validModelSkill(item, source))
+      : []),
   ])
   const preferred = uniqueSkills([
     ...base.preferred,
-    ...(Array.isArray(candidate.preferred) ? candidate.preferred.map((item) => validModelSkill(item, source)) : []),
+    ...(Array.isArray(candidate.preferred)
+      ? candidate.preferred.map((item) => validModelSkill(item, source))
+      : []),
   ]).filter((item) => !technical.includes(item))
   const modelEvidence = Array.isArray(candidate.evidence)
     ? candidate.evidence
-        .filter((item) => isRecord(item) && typeof item.label === 'string' && typeof item.text === 'string')
+        .filter(
+          (item) =>
+            isRecord(item) && typeof item.label === 'string' && typeof item.text === 'string',
+        )
         .filter((item) => evidenceExists(item.text, source))
         .map((item) => ({ label: shorten(item.label, 70), text: shorten(item.text) }))
     : []
@@ -412,12 +451,13 @@ function fallbackSimilarity({ targetRole, requirements, profile }) {
 function locationScore(requirements, preference) {
   const location = normalizeIdentity(requirements.location || '')
   const mode = normalizeIdentity(requirements.workMode || '')
-  if (!location && !mode) return null
+  if (!preference || (!location && !mode)) return null
   if (preference === 'any') return 100
   const isPeru = /\b(?:peru|lima)\b/.test(location)
-  const isLatam = /\b(?:latam|latin america|america latina|peru|mexico|colombia|chile|argentina|ecuador|bolivia|brasil|brazil)\b/.test(
-    location,
-  )
+  const isLatam =
+    /\b(?:latam|latin america|america latina|peru|mexico|colombia|chile|argentina|ecuador|bolivia|brasil|brazil)\b/.test(
+      location,
+    )
   const isRemote = /\bremot/.test(mode)
   if (preference === 'pe') {
     if (isPeru) return 100
@@ -441,17 +481,26 @@ function factor(id, label, score, weight, detail) {
  * Base weights are visible and unavailable evidence is excluded then
  * proportionally reweighted, never guessed.
  */
-export function calculateCompatibility({ requirements, profile, semanticSimilarity, targetRole = 'other' }) {
+export function calculateCompatibility({
+  requirements,
+  profile,
+  semanticSimilarity,
+  targetRole = 'other',
+}) {
   const selectedProfile = parsedProfile(profile)
   const technical = uniqueSkills(requirements?.technical || [])
   const profileProvided = selectedProfile.skills.length > 0
   const referenceSkills = profileProvided ? selectedProfile.skills : []
   const technicalScore = profileProvided ? overlapScore(referenceSkills, technical) : null
   const matched = profileProvided
-    ? selectedProfile.skills.filter((skill) => technical.some((item) => normalizeIdentity(item) === normalizeIdentity(skill)))
+    ? selectedProfile.skills.filter((skill) =>
+        technical.some((item) => normalizeIdentity(item) === normalizeIdentity(skill)),
+      )
     : []
   const gaps = profileProvided
-    ? technical.filter((skill) => !matched.some((item) => normalizeIdentity(item) === normalizeIdentity(skill)))
+    ? technical.filter(
+        (skill) => !matched.some((item) => normalizeIdentity(item) === normalizeIdentity(skill)),
+      )
     : []
   const detectedLevelRank = levelRank(requirements?.level)
   const experienceScore =
@@ -459,9 +508,14 @@ export function calculateCompatibility({ requirements, profile, semanticSimilari
       ? null
       : levelRanks[selectedProfile.level] >= detectedLevelRank
         ? 100
-      : 0
+        : 0
   const semanticScore = scoreFromSimilarity(semanticSimilarity)
   const geographicScore = locationScore(requirements || {}, selectedProfile.preference)
+  const geographicDetail = !selectedProfile.preference
+    ? 'La ubicación y modalidad se muestran como datos de la oferta; no se usan como preferencia personal.'
+    : geographicScore === null
+      ? 'La oferta no indica una ubicación o modalidad verificable.'
+      : 'Se contrasta con tu preferencia de Perú, remoto LATAM o cualquiera.'
   const factors = [
     factor(
       'technical-skills',
@@ -490,17 +544,11 @@ export function calculateCompatibility({ requirements, profile, semanticSimilari
         ? 'La oferta no indica un nivel de experiencia verificable.'
         : 'Se contrasta el nivel indicado en tu perfil con el nivel detectado.',
     ),
-    factor(
-      'location-work-mode',
-      'Ubicación y modalidad',
-      geographicScore,
-      10,
-      geographicScore === null
-        ? 'La oferta no indica una ubicación o modalidad verificable.'
-        : 'Se contrasta con tu preferencia de Perú, remoto LATAM o cualquiera.',
-    ),
+    factor('location-work-mode', 'Ubicación y modalidad', geographicScore, 10, geographicDetail),
   ]
-  const totalWeight = factors.filter((item) => item.available).reduce((total, item) => total + item.weight, 0)
+  const totalWeight = factors
+    .filter((item) => item.available)
+    .reduce((total, item) => total + item.weight, 0)
   const available = factors.filter((item) => item.available)
   for (const item of available) {
     item.effectiveWeight = (item.weight / totalWeight) * 100
@@ -511,7 +559,8 @@ export function calculateCompatibility({ requirements, profile, semanticSimilari
       ? 0
       : Math.round(
           factors.reduce(
-            (total, item) => total + (item.available ? item.score * (item.weight / totalWeight) : 0),
+            (total, item) =>
+              total + (item.available ? item.score * (item.weight / totalWeight) : 0),
             0,
           ),
         )
@@ -527,7 +576,11 @@ export function calculateCompatibility({ requirements, profile, semanticSimilari
   return {
     compatibility: { score, label, recommendation, scope: profileProvided ? 'profile' : 'target' },
     factors,
-    profile: { provided: profileProvided, matched: uniqueSkills(matched), gaps: uniqueSkills(gaps) },
+    profile: {
+      provided: profileProvided,
+      matched: uniqueSkills(matched),
+      gaps: uniqueSkills(gaps),
+    },
   }
 }
 
@@ -554,7 +607,9 @@ function validExplanation(value, allowedSkills) {
   const output = shorten(candidate, 700)
   if (output.length < 20) return null
   const allowed = new Set(allowedSkills.map(normalizeIdentity))
-  const hasUnsupportedSkill = skillCatalog.some(([name, pattern]) => !allowed.has(normalizeIdentity(name)) && pattern.test(output))
+  const hasUnsupportedSkill = skillCatalog.some(
+    ([name, pattern]) => !allowed.has(normalizeIdentity(name)) && pattern.test(output),
+  )
   return hasUnsupportedSkill ? null : output
 }
 
@@ -564,7 +619,9 @@ function analysisLimitations({ input, profileProvided, modelUse, facts }) {
     'Solo se evalúa el texto que se pudo leer; requisitos implícitos o contenido que exige iniciar sesión pueden no aparecer.',
   ]
   if (!profileProvided)
-    values.push('No indicaste habilidades actuales, por eso no se presenta como compatibilidad personal.')
+    values.push(
+      'No indicaste habilidades actuales, por eso no se presenta como compatibilidad personal.',
+    )
   if (input.type === 'url')
     values.push('El enlace se leyó sin iniciar sesión ni ejecutar scripts de la página.')
   if (!facts.salary) values.push('No se detectó un salario verificable en el texto disponible.')
@@ -572,7 +629,8 @@ function analysisLimitations({ input, profileProvided, modelUse, facts }) {
     values.push(
       'El servicio local de modelos no estuvo disponible en todas las etapas; se muestran solo datos verificables y el puntaje determinista.',
     )
-  if (!modelUse.semantic) values.push('La similitud semántica usa una estimación de respaldo; JobBERT no se ejecutó.')
+  if (!modelUse.semantic)
+    values.push('La similitud semántica usa una estimación de respaldo; JobBERT no se ejecutó.')
   return values
 }
 
@@ -595,10 +653,13 @@ export function createOfferAnalyzer({
         : { text: parsed.description, originalUrl: null }
       const cleaned = cleanOfferText(source?.text)
       if (cleaned.length < 40)
-        throw new AnalysisInputError('No pudimos encontrar suficiente texto en la oferta. Pega la descripción manualmente.', {
-          status: 422,
-          code: 'insufficient_offer_text',
-        })
+        throw new AnalysisInputError(
+          'No pudimos encontrar suficiente texto en la oferta. Pega la descripción manualmente.',
+          {
+            status: 422,
+            code: 'insufficient_offer_text',
+          },
+        )
       const input = parsed.url
         ? { type: 'url', originalUrl: source?.originalUrl || parsed.url }
         : { type: 'text' }

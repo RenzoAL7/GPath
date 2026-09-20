@@ -18,6 +18,19 @@ test('only accepts standard HTTPS public-offer URLs before any request', () => {
     validatePublicOfferUrl('https://jobs.example.com/opening').toString(),
     'https://jobs.example.com/opening',
   )
+  assert.equal(
+    validatePublicOfferUrl(
+      'https://www.linkedin.com/jobs/search-results/?currentJobId=4463490846',
+    ).toString(),
+    'https://www.linkedin.com/jobs/view/4463490846',
+  )
+  assert.throws(
+    () =>
+      validatePublicOfferUrl(
+        'https://www.linkedin.com/jobs/search-results/?keywords=data%20engineer',
+      ),
+    /búsqueda de LinkedIn/i,
+  )
 })
 
 test('blocks private DNS answers and validates each redirect before reading content', async () => {
@@ -67,4 +80,21 @@ test('returns only supported text content after a pinned public lookup', async (
     originalUrl: 'https://jobs.example.com/opening',
     text: '<p>Python and SQL</p>',
   })
+})
+
+test('explains when LinkedIn redirects an individual offer to sign-in', async () => {
+  await assert.rejects(
+    readPublicOffer('https://www.linkedin.com/jobs/view/4463490846', {
+      lookup: async () => [{ address: '8.8.8.8', family: 4 }],
+      request: async () => ({
+        status: 302,
+        headers: {
+          location:
+            'https://www.linkedin.com/uas/login?session_redirect=%2Fjobs%2Fview%2F4463490846',
+        },
+        body: '',
+      }),
+    }),
+    /LinkedIn pide iniciar sesión/i,
+  )
 })

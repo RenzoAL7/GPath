@@ -9,12 +9,10 @@ type TargetRoleId =
   | 'machine-learning'
   | 'other'
 type ProfileLevel = 'practicante' | 'internship' | 'junior'
-type Preference = 'pe' | 'latam' | 'any'
 
 type Profile = {
   level: ProfileLevel
   skills: string[]
-  preference: Preference
 }
 
 type AnalyzeRequest = {
@@ -72,12 +70,6 @@ const levels: { id: ProfileLevel; name: string }[] = [
   { id: 'practicante', name: 'Practicante' },
   { id: 'internship', name: 'Internship' },
   { id: 'junior', name: 'Junior' },
-]
-
-const preferences: { id: Preference; name: string }[] = [
-  { id: 'pe', name: 'Perú' },
-  { id: 'latam', name: 'Remoto LATAM' },
-  { id: 'any', name: 'Cualquiera' },
 ]
 
 const analysisSteps = [
@@ -146,9 +138,34 @@ function sourceValidation(url: string, description: string) {
   const hasUrl = Boolean(url.trim())
   const hasDescription = Boolean(description.trim())
   if (hasUrl && hasDescription) return 'Usa solo una fuente: enlace o descripción.'
-  if (!hasUrl && !hasDescription) return 'Agrega un enlace público o pega la descripción de la oferta.'
+  if (!hasUrl && !hasDescription)
+    return 'Agrega un enlace público o pega la descripción de la oferta.'
   if (hasUrl && !isHttpUrl(url.trim())) return 'Usa un enlace HTTPS público válido.'
+  if (hasUrl) {
+    const parsed = new URL(url.trim())
+    if (
+      /(^|\.)linkedin\.com$/i.test(parsed.hostname) &&
+      /\/jobs\/search-results(?:\/|$)/i.test(parsed.pathname)
+    ) {
+      const currentJobId = parsed.searchParams.get('currentJobId')?.trim() || ''
+      if (!/^\d+$/.test(currentJobId))
+        return 'Ese enlace es una búsqueda de LinkedIn. Abre una oferta individual o pega su descripción.'
+    }
+  }
   return ''
+}
+
+function normalizeOfferUrl(value: string) {
+  const parsed = new URL(value)
+  if (
+    /(^|\.)linkedin\.com$/i.test(parsed.hostname) &&
+    /\/jobs\/search-results(?:\/|$)/i.test(parsed.pathname)
+  ) {
+    const currentJobId = parsed.searchParams.get('currentJobId')?.trim() || ''
+    if (/^\d+$/.test(currentJobId))
+      return new URL(`/jobs/view/${currentJobId}`, parsed.origin).toString()
+  }
+  return value
 }
 
 function listOrEmpty(values: string[], emptyText: string) {
@@ -167,7 +184,6 @@ export default function App() {
   const [profile, setProfile] = useState<Profile>({
     level: 'junior',
     skills: [],
-    preference: 'any',
   })
   const [skillDraft, setSkillDraft] = useState('')
   const [url, setUrl] = useState('')
@@ -186,7 +202,8 @@ export default function App() {
   const compatibilityWithTarget = result
     ? !hasProfileSkills || result.compatibility.scope === 'target'
     : false
-  const originalUrl = result?.input.type === 'url' ? safeExternalUrl(result.input.originalUrl) : null
+  const originalUrl =
+    result?.input.type === 'url' ? safeExternalUrl(result.input.originalUrl) : null
 
   useEffect(
     () => () => {
@@ -219,7 +236,9 @@ export default function App() {
   function requestFromForm(): AnalyzeRequest | null {
     if (validation) return null
     const common = { targetRole, profile: { ...profile, skills: [...profile.skills] } }
-    return hasUrl ? { ...common, url: url.trim() } : { ...common, description: description.trim() }
+    return hasUrl
+      ? { ...common, url: normalizeOfferUrl(url.trim()) }
+      : { ...common, description: description.trim() }
   }
 
   async function analyze(input: AnalyzeRequest) {
@@ -274,28 +293,12 @@ export default function App() {
     <div className="shell">
       <header className="topbar">
         <a className="brand" href="/" aria-label="GPath, inicio">
-          <img className="brand-mark" src="/gpath-mark.svg" width="34" height="34" alt="" />
           GPath<span className="brand-detail">Analizador de ofertas</span>
         </a>
-        <span className="status-label">
-          <span aria-hidden="true" /> Análisis orientativo
-        </span>
       </header>
       <main>
-        <section className="intro" aria-labelledby="page-title">
-          <div className="intro-copy-block">
-            <p className="intro-kicker">Oferta encontrada por ti</p>
-            <h1 id="page-title">
-              Pega una oferta laboral y descubre qué piden, cuánto encajas y qué te falta para
-              postular.
-            </h1>
-          </div>
-          <p className="intro-index">Puesto → perfil → análisis</p>
-        </section>
-
         <div className="workspace" id="analizador">
           <aside className="role-panel" aria-labelledby="profile-title">
-            <p className="filter-eyebrow">01 / Tu objetivo</p>
             <h2 id="profile-title">¿Qué puesto buscas?</h2>
             <div className="role-choices" role="group" aria-label="Puesto objetivo">
               {targetRoles.map((choice) => (
@@ -378,37 +381,12 @@ export default function App() {
                   </ul>
                 )}
               </div>
-
-              <fieldset>
-                <legend>Modalidad preferida</legend>
-                <div className="segmented three-options" role="group" aria-label="Modalidad preferida">
-                  {preferences.map((preference) => (
-                    <button
-                      key={preference.id}
-                      type="button"
-                      className={profile.preference === preference.id ? 'active' : ''}
-                      aria-pressed={profile.preference === preference.id}
-                      disabled={loading}
-                      onClick={() =>
-                        setProfile((current) => ({ ...current, preference: preference.id }))
-                      }
-                    >
-                      {preference.name}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
             </section>
-            <p className="privacy-note">
-              Estas selecciones se usan solo para el análisis actual; no creamos cuentas ni
-              guardamos un CV.
-            </p>
           </aside>
 
           <section className="analyzer-panel" aria-labelledby="analyzer-title" aria-busy={loading}>
             <div className="panel-heading">
               <div>
-                <p className="section-label">02 / Analiza una oferta</p>
                 <h2 id="analyzer-title">Analizador de ofertas</h2>
               </div>
             </div>
@@ -480,7 +458,11 @@ export default function App() {
                 <p>{error}</p>
                 {result && <p>Se mantiene el último resultado mientras vuelves a intentarlo.</p>}
                 {lastRequest && !loading && (
-                  <button className="retry-button" type="button" onClick={() => void analyze(lastRequest)}>
+                  <button
+                    className="retry-button"
+                    type="button"
+                    onClick={() => void analyze(lastRequest)}
+                  >
                     Reintentar análisis
                   </button>
                 )}
@@ -491,8 +473,7 @@ export default function App() {
               <div className="empty-state">
                 <strong>El análisis aparecerá aquí.</strong>
                 <p>
-                  Elige tu puesto objetivo y agrega un enlace público o la descripción de la
-                  oferta.
+                  Elige tu puesto objetivo y agrega un enlace público o la descripción de la oferta.
                 </p>
               </div>
             )}
@@ -544,8 +525,8 @@ export default function App() {
                 <section className="factor-section" aria-labelledby="factors-title">
                   <h3 id="factors-title">Cómo se calculó</h3>
                   <p>
-                    El puntaje es orientativo y se calcula en el backend con factores visibles;
-                    la explicación no decide el puntaje.
+                    El puntaje es orientativo y se calcula en el backend con factores visibles; la
+                    explicación no decide el puntaje.
                   </p>
                   <ul className="factor-list">
                     {result.factors.map((factor) => (
@@ -556,7 +537,9 @@ export default function App() {
                         </div>
                         <p>
                           <b>
-                            {factor.score === null ? 'No evaluado' : `${Math.round(factor.score)} / 100`}
+                            {factor.score === null
+                              ? 'No evaluado'
+                              : `${Math.round(factor.score)} / 100`}
                           </b>
                           <span>
                             Peso {Math.round(factor.weight)}% · aporta{' '}
@@ -584,7 +567,10 @@ export default function App() {
                   </section>
                   <section aria-labelledby="match-title">
                     <h3 id="match-title">Tú cumples</h3>
-                    {listOrEmpty(result.profile.matched, 'No se identificaron coincidencias personales.')}
+                    {listOrEmpty(
+                      result.profile.matched,
+                      'No se identificaron coincidencias personales.',
+                    )}
                     <h3 className="gap-heading">Te falta</h3>
                     {listOrEmpty(result.profile.gaps, 'No se identificaron brechas concretas.')}
                   </section>

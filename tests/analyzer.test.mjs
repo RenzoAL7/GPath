@@ -2,7 +2,9 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   calculateCompatibility,
+  cleanOfferText,
   createOfferAnalyzer,
+  extractOfferFacts,
   targetRoles,
 } from '../server/analyzer.mjs'
 
@@ -48,6 +50,17 @@ function userProfile(overrides = {}) {
   }
 }
 
+test('keeps public offer metadata when the page shell hides the rendered job', () => {
+  const cleaned = cleanOfferText(
+    '<meta property="og:description" content="Practicante de Tecnología. Requisitos: SQL, Phyton y Power BI.">',
+  )
+  const facts = extractOfferFacts(cleaned, 'data-analyst')
+
+  assert.match(cleaned, /Practicante de Tecnología/)
+  assert.deepEqual(facts.technical, ['SQL', 'Power BI', 'Python'])
+  assert.equal(facts.level, 'Practicante / Internship')
+})
+
 function factor(result, id) {
   const value = result.factors.find((current) => current.id === id)
   assert.ok(value, `missing factor ${id}`)
@@ -61,8 +74,16 @@ function assertFrontendShape(result) {
   assert.equal(typeof result.targetRole.label, 'string')
   assert.ok(Number.isInteger(result.compatibility.score))
   assert.ok(result.compatibility.score >= 0 && result.compatibility.score <= 100)
-  assert.ok(['Alta compatibilidad', 'Compatibilidad parcial', 'Baja compatibilidad'].includes(result.compatibility.label))
-  assert.ok(['Vale la pena postular', 'Revisar brechas', 'No es prioritaria'].includes(result.compatibility.recommendation))
+  assert.ok(
+    ['Alta compatibilidad', 'Compatibilidad parcial', 'Baja compatibilidad'].includes(
+      result.compatibility.label,
+    ),
+  )
+  assert.ok(
+    ['Vale la pena postular', 'Revisar brechas', 'No es prioritaria'].includes(
+      result.compatibility.recommendation,
+    ),
+  )
   assert.ok(['profile', 'target'].includes(result.compatibility.scope))
   assert.ok(Array.isArray(result.factors))
   assert.ok(Array.isArray(result.requirements.technical))
@@ -199,6 +220,18 @@ test('does not claim personal compatibility without skills and reweights only av
   assert.equal(factor(result, 'semantic-similarity').contribution, 40)
   assert.equal(factor(result, 'experience-level').contribution, 30)
   assert.equal(factor(result, 'location-work-mode').contribution, 20)
+})
+
+test('shows offer location without scoring it when the profile has no location preference', () => {
+  const result = calculateCompatibility({
+    requirements: offerRequirements(),
+    profile: { level: 'junior', skills: ['Python'] },
+    semanticSimilarity: 0.8,
+  })
+  const locationFactor = factor(result, 'location-work-mode')
+
+  assert.equal(locationFactor.score, null)
+  assert.match(locationFactor.detail, /no se usan como preferencia personal/i)
 })
 
 test('uses URL and manual text safely, while an explainer cannot change scoring or introduce unsupported fields', async () => {
