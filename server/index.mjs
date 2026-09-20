@@ -1,11 +1,14 @@
 import { readFile } from 'node:fs/promises'
 import { createApi } from './app.mjs'
+import { createOfferAnalyzer } from './analyzer.mjs'
 import { createArchive } from './archive.mjs'
 import { createGreenhouseJobs, parseGreenhouseSources } from './greenhouse.mjs'
 import { createLeverJobs, parseLeverSources } from './lever.mjs'
 import { createAshbyJobs, parseAshbySources } from './ashby.mjs'
 import { demoAnalysis } from './jobs.mjs'
 import { createMultiSourceJobs } from './multi-source.mjs'
+import { modelAssetsStatus, parseModelAssets } from './model-assets.mjs'
+import { createModelRuntime } from './model-runtime.mjs'
 
 const port = Number(process.env.PORT || 8081)
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid PORT')
@@ -14,6 +17,13 @@ const release = JSON.parse(
 )
 const mode = process.env.JOB_MODE || 'live'
 if (!['live', 'demo'].includes(mode)) throw new Error('Invalid JOB_MODE')
+const modelAssets = parseModelAssets()
+const modelRuntime = createModelRuntime({ assets: modelAssets })
+const analyzer = createOfferAnalyzer({
+  extractRequirements: modelRuntime.extractRequirements,
+  semanticSimilarity: modelRuntime.semanticSimilarity,
+  explain: modelRuntime.explain,
+})
 const cacheTtl =
   Number(process.env.JOBS_CACHE_SECONDS || process.env.GREENHOUSE_CACHE_SECONDS || 900) * 1000
 const maxJobsPerSource = Number(
@@ -48,10 +58,18 @@ const server = createApi({
   environment: process.env.RUNTIME_ENV || 'local',
   archive: createArchive({ url: process.env.RELEASE_CATALOG_URL }),
   jobs,
+  analyzer,
   log: (entry) => console.log(JSON.stringify(entry)),
 })
 server.listen(port, process.env.HOST || '0.0.0.0', () =>
-  console.log(`GPath API listening on ${port}`),
+  console.log(
+    JSON.stringify({
+      event: 'api_started',
+      port,
+      modelRuntime: modelRuntime.available ? 'configured' : 'not-configured',
+      modelAssets: modelAssetsStatus(modelAssets),
+    }),
+  ),
 )
 for (const signal of ['SIGINT', 'SIGTERM'])
   process.on(signal, () => {

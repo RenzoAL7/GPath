@@ -27,6 +27,60 @@ async function fixture(t, options = {}) {
   return { url: `http://127.0.0.1:${server.address().port}`, logs }
 }
 
+const analyzerResponse = {
+  input: {
+    type: 'url',
+    originalUrl: 'https://jobs.example.test/data-analyst?token=private-offer-token',
+  },
+  targetRole: { id: 'data-analyst', label: 'Data Analyst' },
+  compatibility: {
+    score: 83,
+    label: 'Alta compatibilidad',
+    recommendation: 'Vale la pena postular',
+    scope: 'profile',
+  },
+  factors: [
+    {
+      id: 'technical-skills',
+      label: 'Habilidades técnicas coincidentes',
+      score: 75,
+      weight: 50,
+      contribution: 37.5,
+      detail: '3 de 4 habilidades requeridas',
+      available: true,
+    },
+  ],
+  requirements: {
+    technical: ['Python', 'SQL', 'Airflow', 'Docker'],
+    preferred: [],
+    level: 'Junior',
+    location: 'Lima, Perú',
+    workMode: 'onsite',
+    salary: null,
+  },
+  profile: { provided: true, matched: ['Python', 'SQL', 'Docker'], gaps: ['Airflow'] },
+  evidence: [{ label: 'Tecnologías', text: 'Python, SQL, Airflow y Docker' }],
+  explanation: 'Tu perfil coincide con tres habilidades mencionadas en la oferta.',
+  limitations: ['El resultado es orientativo y depende del contenido público disponible.'],
+}
+
+function analysisRequest(overrides = {}) {
+  return {
+    targetRole: 'data-analyst',
+    profile: { level: 'junior', skills: ['Python', 'SQL', 'Docker'], preference: 'pe' },
+    url: 'https://jobs.example.test/data-analyst?token=private-offer-token',
+    ...overrides,
+  }
+}
+
+async function analyze(url, body, headers = { 'content-type': 'application/json' }) {
+  return fetch(url + '/api/analyze', {
+    method: 'POST',
+    headers,
+    body: typeof body === 'string' ? body : JSON.stringify(body),
+  })
+}
+
 test('health and readiness are independent from OCI', async (t) => {
   const { url } = await fixture(t, {
     archive: {
@@ -134,4 +188,93 @@ test('jobs endpoint can serve a live provider and hides provider failures', asyn
   assert.deepEqual(await failure.json(), {
     error: 'No se pudieron consultar las ofertas públicas. Inténtalo de nuevo.',
   })
+})
+
+test('analysis endpoint forwards either one URL or one manual description without logging private input', async (t) => {
+  const received = []
+  const { url, logs } = await fixture(t, {
+    analyzer: {
+      analyze: async (input) => {
+        received.push(input)
+        if (input.description) {
+          return {
+            ...analyzerResponse,
+            input: { type: 'text' },
+            compatibility: { ...analyzerResponse.compatibility, scope: 'target' },
+            profile: { provided: false, matched: [], gaps: [] },
+          }
+        }
+        return analyzerResponse
+      },
+    },
+  })
+
+  const request = analysisRequest()
+  const response = await analyze(url, request)
+  assert.equal(response.status, 200)
+  assert.deepEqual(await response.json(), analyzerResponse)
+
+  const description = 'Descripción privada: Python y SQL. No registrar este texto.'
+  const textRequest = analysisRequest({ url: undefined, description, profile: { level: 'junior', skills: [], preference: 'any' } })
+  const { url: omittedUrl, ...manualInput } = textRequest
+  const textResponse = await analyze(url, textRequest)
+  assert.equal(textResponse.status, 200)
+  assert.deepEqual(await textResponse.json(), {
+    ...analyzerResponse,
+    input: { type: 'text' },
+    compatibility: { ...analyzerResponse.compatibility, scope: 'target' },
+    profile: { provided: false, matched: [], gaps: [] },
+  })
+
+  assert.deepEqual(received, [request, manualInput])
+  const logged = JSON.stringify(logs)
+  assert.doesNotMatch(logged, /private-offer-token|Descripción privada|No registrar este texto/)
+})
+
+test('analysis endpoint rejects invalid XOR input and profile values before invoking the analyzer', async (t) => {
+  let calls = 0
+  const { url } = await fixture(t, {
+    analyzer: {
+      analyze: async () => {
+        calls++
+        return analyzerResponse
+      },
+    },
+  })
+  const invalidBodies = [
+    analysisRequest({ url: undefined }),
+    analysisRequest({ description: 'Pegar ambos no es válido.' }),
+    analysisRequest({ url: 'not-a-public-url' }),
+    analysisRequest({ url: ' ' }),
+    analysisRequest({ url: undefined, description: '   ' }),
+    analysisRequest({ targetRole: 'senior-data-scientist' }),
+    analysisRequest({ profile: { level: 'senior', skills: [], preference: 'pe' } }),
+    analysisRequest({ profile: { level: 'junior', skills: [], preference: 'worldwide' } }),
+    analysisRequest({ profile: { level: 'junior', skills: ['Python', 7], preference: 'pe' } }),
+  ]
+
+  for (const body of invalidBodies) {
+    const response = await analyze(url, body)
+    assert.equal(response.status, 400)
+    const payload = await response.json()
+    assert.equal(typeof payload.error, 'string')
+  }
+  assert.equal(calls, 0)
+})
+
+test('analysis endpoint requires JSON before accepting any analyzer input', async (t) => {
+  let calls = 0
+  const { url } = await fixture(t, {
+    analyzer: {
+      analyze: async () => {
+        calls++
+        return analyzerResponse
+      },
+    },
+  })
+  const response = await analyze(url, JSON.stringify(analysisRequest()), { 'content-type': 'text/plain' })
+  assert.equal(response.status, 415)
+  const payload = await response.json()
+  assert.equal(typeof payload.error, 'string')
+  assert.equal(calls, 0)
 })

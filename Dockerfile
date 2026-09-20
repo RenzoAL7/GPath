@@ -15,6 +15,9 @@ ENV NODE_ENV=production PORT=8081 RUNTIME_ENV=container
 COPY --chown=node:node server ./server
 COPY --chown=node:node shared ./shared
 COPY --chown=node:node public/release.json ./public/release.json
+# Inference artifacts are intentionally absent from this image. Compose or a
+# deployment-specific sidecar may mount an externally managed volume here.
+RUN mkdir -p /models && chown node:node /models
 USER 1000:1000
 EXPOSE 8081
 HEALTHCHECK --interval=15s --timeout=3s --start-period=5s --retries=3 \

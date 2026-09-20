@@ -17,18 +17,21 @@ assert.deepEqual(release, api.release)
 const probe = await (await get('/api/probe')).json()
 assert.equal(probe.revision, release.revision)
 assert.equal(probe.service, 'gpath-api')
-const jobs = await (
-  await get('/api/jobs?role=data-intern&region=all&country=all&workMode=all')
-).json()
-if (jobs.mode === 'demo') {
-  assert.equal(jobs.total, 4)
-  assert.equal(jobs.skills.find((skill) => skill.name === 'Python').count, 4)
-} else {
-  assert.equal(jobs.mode, 'live')
-  assert.match(jobs.collectedAt, /^\d{4}-\d{2}-\d{2}T/)
-  assert.ok(Array.isArray(jobs.sourceNames))
-  assert.ok(jobs.jobs.every((job) => /^https:\/\//.test(job.url)))
-}
+const analysisResponse = await fetch(base + '/api/analyze', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  signal: AbortSignal.timeout(15_000),
+  body: JSON.stringify({
+    targetRole: 'data-analyst',
+    profile: { level: 'junior', skills: ['Python', 'SQL'], preference: 'pe' },
+    description: 'Data Analyst Junior con Python y SQL. Trabajo remoto para Perú.',
+  }),
+})
+assert.equal(analysisResponse.status, 200)
+const analysis = await analysisResponse.json()
+assert.equal(analysis.compatibility.scope, 'profile')
+assert.ok(Number.isInteger(analysis.compatibility.score))
+assert.deepEqual(analysis.input, { type: 'text' })
 console.log(
-  `Smoke passed: Growth Path web + API, same build ${release.revision.slice(0, 7)}, mode=${jobs.mode}`,
+  `Smoke passed: GPath web + analyzer API, same build ${release.revision.slice(0, 7)}`,
 )
