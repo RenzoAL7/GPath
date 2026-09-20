@@ -19,9 +19,31 @@ function normalizedHostname(value) {
   return value.toLowerCase().replace(/\.$/, '')
 }
 
+function isLinkedInHost(hostname) {
+  return /(^|\.)linkedin\.com$/i.test(normalizedHostname(hostname))
+}
+
+function isLinkedInLoginUrl(url) {
+  return isLinkedInHost(url.hostname) && /^\/(?:uas\/login|login)(?:\/|$)/i.test(url.pathname)
+}
+
+function normalizeLinkedInSearchUrl(url) {
+  if (!isLinkedInHost(url.hostname) || !/\/jobs\/search-results(?:\/|$)/i.test(url.pathname))
+    return url
+  const currentJobId = url.searchParams.get('currentJobId')?.trim() || ''
+  if (/^\d+$/.test(currentJobId)) return new URL(`/jobs/view/${currentJobId}`, url.origin)
+  throw new OfferReadError(
+    'Ese enlace es una búsqueda de LinkedIn. Abre una oferta individual o pega su descripción.',
+    { code: 'linkedin_search' },
+  )
+}
+
 function ipv4IsPublic(address) {
   const octets = address.split('.').map(Number)
-  if (octets.length !== 4 || octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255))
+  if (
+    octets.length !== 4 ||
+    octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)
+  )
     return false
   const [first, second] = octets
   if (first === 0 || first === 10 || first === 127 || first >= 224) return false
@@ -79,7 +101,7 @@ export function validatePublicOfferUrl(value) {
   ) {
     throw new OfferReadError('Usa un enlace HTTPS público de la oferta.', { code: 'unsafe_url' })
   }
-  return url
+  return normalizeLinkedInSearchUrl(url)
 }
 
 async function resolvePublicAddress(url, lookup = dnsLookup) {
@@ -89,7 +111,11 @@ async function resolvePublicAddress(url, lookup = dnsLookup) {
   } catch {
     throw new OfferReadError('No se pudo acceder al enlace de la oferta.', { code: 'dns_failed' })
   }
-  if (!Array.isArray(records) || !records.length || records.some((record) => !isPublicAddress(record.address))) {
+  if (
+    !Array.isArray(records) ||
+    !records.length ||
+    records.some((record) => !isPublicAddress(record.address))
+  ) {
     throw new OfferReadError('El enlace debe apuntar a una oferta pública accesible.', {
       code: 'private_address',
     })
@@ -115,7 +141,11 @@ function requestOnce(url, address, { timeout = requestTimeout, maxSize = maxByte
           'Accept-Encoding': 'identity',
           'User-Agent': 'GPath offer analyzer/1.0',
         },
-        lookup: (_hostname, _options, callback) => callback(null, address.address, address.family),
+        lookup: (_hostname, lookupOptions, callback) => {
+          if (lookupOptions?.all)
+            return callback(null, [{ address: address.address, family: address.family }])
+          return callback(null, address.address, address.family)
+        },
         servername: url.hostname,
       },
       (response) => {
@@ -145,7 +175,11 @@ function requestOnce(url, address, { timeout = requestTimeout, maxSize = maxByte
           chunks.push(chunk)
         })
         response.on('error', () =>
-          fail(new OfferReadError('No se pudo leer el contenido de la oferta.', { code: 'read_failed' })),
+          fail(
+            new OfferReadError('No se pudo leer el contenido de la oferta.', {
+              code: 'read_failed',
+            }),
+          ),
         )
         response.on('end', () => {
           if (settled) return
@@ -168,7 +202,11 @@ function requestOnce(url, address, { timeout = requestTimeout, maxSize = maxByte
     )
     request.on('error', (error) => {
       if (error instanceof OfferReadError) return fail(error)
-      return fail(new OfferReadError('No se pudo acceder al enlace de la oferta.', { code: 'request_failed' }))
+      return fail(
+        new OfferReadError('No se pudo acceder al enlace de la oferta.', {
+          code: 'request_failed',
+        }),
+      )
     })
     request.end()
   })
@@ -193,15 +231,28 @@ export async function readPublicOffer(value, options = {}) {
     const response = await request(current, address, options)
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       if (redirects === maxRedirects)
-        throw new OfferReadError('El enlace redirige demasiadas veces.', { code: 'too_many_redirects' })
+        throw new OfferReadError('El enlace redirige demasiadas veces.', {
+          code: 'too_many_redirects',
+        })
       const location = response.headers.location
       if (!location)
-        throw new OfferReadError('El enlace de la oferta no se pudo seguir.', { code: 'invalid_redirect' })
-      current = validatePublicOfferUrl(new URL(location, current).toString())
+        throw new OfferReadError('El enlace de la oferta no se pudo seguir.', {
+          code: 'invalid_redirect',
+        })
+      const next = validatePublicOfferUrl(new URL(location, current).toString())
+      if (isLinkedInLoginUrl(next)) {
+        throw new OfferReadError(
+          'LinkedIn pide iniciar sesión para mostrar esta oferta. Abre el puesto individual o pega la descripción.',
+          { code: 'linkedin_login' },
+        )
+      }
+      current = next
       continue
     }
     if (response.status < 200 || response.status >= 300)
-      throw new OfferReadError('La oferta no está disponible públicamente.', { code: 'upstream_status' })
+      throw new OfferReadError('La oferta no está disponible públicamente.', {
+        code: 'upstream_status',
+      })
     if (!supportedContentType(response.headers))
       throw new OfferReadError('El enlace no contiene una oferta que podamos leer.', {
         status: 415,

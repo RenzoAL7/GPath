@@ -41,6 +41,12 @@ cookies y bloquea URL con credenciales, puertos no estándar, hosts locales y ra
 red privada. Las redirecciones se vuelven a validar. Si no se puede leer una página,
 la interfaz pide pegar la descripción.
 
+Los enlaces de búsqueda de LinkedIn que incluyen `currentJobId` se convierten a la
+ficha pública del puesto; una búsqueda sin un puesto seleccionado se rechaza. También
+se conservan metadatos públicos `description` y `og:description`, porque algunas
+plataformas como Workday entregan allí el contenido mientras cargan su interfaz con
+JavaScript.
+
 El endpoint es \`POST /api/analyze\` con JSON:
 
 \`\`\`json
@@ -48,8 +54,7 @@ El endpoint es \`POST /api/analyze\` con JSON:
   "targetRole": "data-analyst",
   "profile": {
     "level": "junior",
-    "skills": ["Python", "SQL"],
-    "preference": "pe"
+    "skills": ["Python", "SQL"]
   },
   "description": "Texto de la oferta"
 }
@@ -57,8 +62,7 @@ El endpoint es \`POST /api/analyze\` con JSON:
 
 \`targetRole\` acepta \`data-analyst\`, \`data-engineer\`, \`backend-developer\`,
 \`cloud-devops\`, \`machine-learning\` u \`other\`. El perfil acepta niveles
-\`practicante\`, \`internship\` o \`junior\`; la preferencia es \`pe\`, \`latam\` o
-\`any\`.
+\`practicante\`, \`internship\` o \`junior\` y una lista opcional de habilidades actuales.
 
 Después de limpiar la oferta, el resultado muestra requisitos y evidencias textuales,
 coincidencias, brechas, nivel, ubicación/modalidad y salario solo cuando aparecen en
@@ -76,6 +80,11 @@ se reponderan; nunca se inventa un valor. Los umbrales son alta compatibilidad
 (75–100), compatibilidad parcial (45–74) y baja compatibilidad (0–44). Si no se
 indican habilidades actuales, GPath dice **“Compatibilidad con el puesto objetivo”**:
 no afirma una compatibilidad personal ni brechas del usuario.
+
+La interfaz actual no solicita país ni modalidad preferida. Por eso la ubicación y la
+modalidad se muestran como requisitos detectados en la oferta, pero no se usan como
+preferencia personal para el puntaje. El campo \`preference\` se conserva únicamente
+para clientes API antiguos.
 
 La extracción y la explicación están separadas del cálculo. Un modelo puede proponer
 estructura o redactar una explicación, pero sus requisitos, salario y evidencias deben

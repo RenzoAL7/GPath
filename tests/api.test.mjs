@@ -67,7 +67,7 @@ const analyzerResponse = {
 function analysisRequest(overrides = {}) {
   return {
     targetRole: 'data-analyst',
-    profile: { level: 'junior', skills: ['Python', 'SQL', 'Docker'], preference: 'pe' },
+    profile: { level: 'junior', skills: ['Python', 'SQL', 'Docker'] },
     url: 'https://jobs.example.test/data-analyst?token=private-offer-token',
     ...overrides,
   }
@@ -215,7 +215,11 @@ test('analysis endpoint forwards either one URL or one manual description withou
   assert.deepEqual(await response.json(), analyzerResponse)
 
   const description = 'Descripción privada: Python y SQL. No registrar este texto.'
-  const textRequest = analysisRequest({ url: undefined, description, profile: { level: 'junior', skills: [], preference: 'any' } })
+  const textRequest = analysisRequest({
+    url: undefined,
+    description,
+    profile: { level: 'junior', skills: [] },
+  })
   const { url: omittedUrl, ...manualInput } = textRequest
   const textResponse = await analyze(url, textRequest)
   assert.equal(textResponse.status, 200)
@@ -272,7 +276,9 @@ test('analysis endpoint requires JSON before accepting any analyzer input', asyn
       },
     },
   })
-  const response = await analyze(url, JSON.stringify(analysisRequest()), { 'content-type': 'text/plain' })
+  const response = await analyze(url, JSON.stringify(analysisRequest()), {
+    'content-type': 'text/plain',
+  })
   assert.equal(response.status, 415)
   const payload = await response.json()
   assert.equal(typeof payload.error, 'string')

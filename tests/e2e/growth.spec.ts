@@ -40,10 +40,11 @@ const result = {
     {
       id: 'location-work-mode',
       label: 'Ubicación y modalidad',
-      score: 50,
+      score: null,
       weight: 10,
-      contribution: 5,
-      detail: 'Se contrasta con tu preferencia de Perú, remoto LATAM o cualquiera.',
+      contribution: 0,
+      detail:
+        'La ubicación y modalidad se muestran como datos de la oferta; no se usan como preferencia personal.',
     },
   ],
   requirements: {
@@ -70,13 +71,19 @@ async function addSkills(page: import('@playwright/test').Page, skills = ['Pytho
   }
 }
 
-test('shows the six target roles and keeps the source empty until the user provides one', async ({ page }) => {
+test('shows the six target roles and keeps the source empty until the user provides one', async ({
+  page,
+}) => {
   await page.goto('/')
   await expect(page).toHaveTitle('GPath — Growth Path')
-  const mark = page.locator('.brand-mark')
-  const iconPath = await page.locator('link[rel="icon"]').getAttribute('href')
-  await expect(mark).toHaveAttribute('src', iconPath!)
-  await expect(mark).toHaveJSProperty('naturalWidth', 40)
+  await expect(page.locator('.brand-mark')).toHaveCount(0)
+  await expect(page.getByText('Análisis orientativo')).toHaveCount(0)
+  await expect(page.getByText('Oferta encontrada por ti')).toHaveCount(0)
+  await expect(page.getByText('Puesto → perfil → análisis')).toHaveCount(0)
+  await expect(page.getByText('Modalidad preferida')).toHaveCount(0)
+  await expect(
+    page.getByText('Estas selecciones se usan solo para el análisis actual'),
+  ).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Data Analyst/ })).toHaveCount(1)
   await expect(page.getByRole('button', { name: /Data Engineer/ })).toHaveCount(1)
   await expect(page.getByRole('button', { name: /Backend Developer/ })).toHaveCount(1)
@@ -124,7 +131,6 @@ test('uses one source at a time and sends the selected profile with a URL', asyn
   await page.goto('/')
   await page.getByRole('button', { name: /Cloud \/ DevOps/ }).click()
   await page.getByRole('button', { name: 'Internship' }).click()
-  await page.getByRole('button', { name: 'Remoto LATAM' }).click()
   await addSkills(page, ['Docker'])
   await page
     .getByLabel('Pega el enlace público de la oferta')
@@ -139,9 +145,35 @@ test('uses one source at a time and sends the selected profile with a URL', asyn
   )
   expect(received).toEqual({
     targetRole: 'cloud-devops',
-    profile: { level: 'internship', skills: ['Docker'], preference: 'latam' },
+    profile: { level: 'internship', skills: ['Docker'] },
     url: 'https://careers.example.com/jobs/data-analyst',
   })
+})
+
+test('turns a LinkedIn search link with a selected job into an individual offer URL', async ({
+  page,
+}) => {
+  await page.route('**/api/analyze', async (route) => {
+    const body = JSON.parse(route.request().postData() || '{}')
+    expect(body.url).toBe('https://www.linkedin.com/jobs/view/4463490846')
+    await route.fulfill({ json: result })
+  })
+  await page.goto('/')
+  await page
+    .getByLabel('Pega el enlace público de la oferta')
+    .fill('https://www.linkedin.com/jobs/search-results/?currentJobId=4463490846')
+  await expect(page.getByText(/Ese enlace es una búsqueda de LinkedIn/)).toHaveCount(0)
+  await page.getByRole('button', { name: 'Analizar oferta' }).click()
+  await expect(page.getByText('78')).toBeVisible()
+})
+
+test('explains when a LinkedIn URL is only a search without a selected offer', async ({ page }) => {
+  await page.goto('/')
+  await page
+    .getByLabel('Pega el enlace público de la oferta')
+    .fill('https://www.linkedin.com/jobs/search-results/?keywords=data%20engineer')
+  await expect(page.getByText(/Ese enlace es una búsqueda de LinkedIn/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Analizar oferta' })).toBeDisabled()
 })
 
 test('shows the real analysis stages while a request is pending', async ({ page }) => {
@@ -166,7 +198,9 @@ test('shows the real analysis stages while a request is pending', async ({ page 
   await expect(page.getByLabel('Progreso del análisis')).toHaveCount(0)
 })
 
-test('labels an analysis without skills as compatibility with the target role', async ({ page }) => {
+test('labels an analysis without skills as compatibility with the target role', async ({
+  page,
+}) => {
   await page.route('**/api/analyze', (route) =>
     route.fulfill({
       json: {
@@ -182,7 +216,9 @@ test('labels an analysis without skills as compatibility with the target role', 
     .getByLabel('Si no pudimos leer el enlace, pega aquí la descripción de la oferta.')
     .fill('Buscamos Data Analyst Junior con Python y SQL. Trabajo remoto para Perú.')
   await page.getByRole('button', { name: 'Analizar oferta' }).click()
-  await expect(page.getByRole('heading', { name: 'Compatibilidad con el puesto objetivo' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Compatibilidad con el puesto objetivo' }),
+  ).toBeVisible()
   await expect(page.getByText(/Perfil incompleto: agrega tus habilidades actuales/)).toBeVisible()
 })
 
@@ -199,18 +235,25 @@ test('keeps the previous result after an error and offers a retry', async ({ pag
     .getByLabel('Si no pudimos leer el enlace, pega aquí la descripción de la oferta.')
     .fill('Buscamos Data Analyst Junior con Python y SQL. Trabajo remoto para Perú.')
   await page.getByRole('button', { name: 'Analizar oferta' }).click()
-  await expect(page.getByRole('heading', { name: 'Compatibilidad con el puesto objetivo' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Compatibilidad con el puesto objetivo' }),
+  ).toBeVisible()
   await page.getByRole('button', { name: 'Analizar oferta' }).click()
   await expect(page.getByRole('alert')).toContainText('Se mantiene el último resultado')
   await page.getByRole('button', { name: 'Reintentar análisis' }).click()
   await expect(page.getByRole('alert')).toHaveCount(0)
 })
 
-test('narrow layout has no horizontal overflow and records a real screenshot', async ({ page }, testInfo) => {
+test('narrow layout has no horizontal overflow and records a real screenshot', async ({
+  page,
+}, testInfo) => {
   await page.goto('/')
   if (testInfo.project.name === 'desktop')
     await page.screenshot({ path: 'artifacts/analyzer-desktop.png', fullPage: true })
   await page.setViewportSize({ width: 320, height: 720 })
-  await page.screenshot({ path: `artifacts/analyzer-320-${testInfo.project.name}.png`, fullPage: true })
+  await page.screenshot({
+    path: `artifacts/analyzer-320-${testInfo.project.name}.png`,
+    fullPage: true,
+  })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= 320)).toBe(true)
 })
