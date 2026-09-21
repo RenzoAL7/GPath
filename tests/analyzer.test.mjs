@@ -5,6 +5,7 @@ import {
   cleanOfferText,
   createOfferAnalyzer,
   extractOfferFacts,
+  extractOfferTitle,
   targetRoles,
 } from '../server/analyzer.mjs'
 
@@ -24,6 +25,7 @@ const frontendKeys = [
   'factors',
   'input',
   'limitations',
+  'offer',
   'profile',
   'requirements',
   'targetRole',
@@ -61,6 +63,26 @@ test('keeps public offer metadata when the page shell hides the rendered job', (
   assert.equal(facts.level, 'Practicante / Internship')
 })
 
+test('returns a source-backed offer title for headings and pasted descriptions', () => {
+  const html = `
+    <meta property="og:title" content="Data Engineer Intern · Example" />
+    <h1>Data Engineer Intern</h1>
+    <p>Python, SQL y Airflow. Trabajo remoto para Perú.</p>
+  `
+
+  assert.equal(extractOfferTitle(html), 'Data Engineer Intern')
+  assert.equal(
+    extractOfferTitle(
+      'Example Labs\nBuscamos Data Analyst Junior con Python y SQL. Trabajo remoto para Perú.',
+    ),
+    'Data Analyst Junior',
+  )
+  assert.equal(
+    extractOfferTitle('Practicante de Tecnología. Requisitos: SQL, Python y Power BI.'),
+    'Practicante de Tecnología',
+  )
+})
+
 function factor(result, id) {
   const value = result.factors.find((current) => current.id === id)
   assert.ok(value, `missing factor ${id}`)
@@ -70,6 +92,8 @@ function factor(result, id) {
 function assertFrontendShape(result) {
   assert.deepEqual(Object.keys(result).sort(), frontendKeys)
   assert.ok(['url', 'text'].includes(result.input.type))
+  assert.equal(typeof result.offer, 'object')
+  assert.ok(result.offer.title === null || typeof result.offer.title === 'string')
   assert.ok(roleIds.includes(result.targetRole.id))
   assert.equal(typeof result.targetRole.label, 'string')
   assert.ok(Number.isInteger(result.compatibility.score))

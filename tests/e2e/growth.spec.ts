@@ -5,6 +5,7 @@ const result = {
     type: 'url',
     originalUrl: 'https://careers.example.com/jobs/data-analyst',
   },
+  offer: { title: 'Data Analyst Junior' },
   targetRole: { id: 'data-analyst', label: 'Data Analyst' },
   compatibility: {
     score: 78,
@@ -71,6 +72,10 @@ test('starts with a centered source step and no target-role panel', async ({ pag
   await expect(
     page.getByRole('heading', { name: 'Entiende una oferta antes de postular' }),
   ).toBeVisible()
+  await expect(page.locator('header').getByText('GPath', { exact: true })).toHaveCount(0)
+  await expect(
+    page.getByAltText('Letras y símbolos de colores que representan los requisitos de una oferta.'),
+  ).toBeVisible()
   await expect(page.getByText('¿Qué puesto buscas?')).toHaveCount(0)
   await expect(page.getByText('Tu perfil')).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Data Analyst/ })).toHaveCount(0)
@@ -89,10 +94,17 @@ test('reads pasted text and then shows the general offer analysis', async ({ pag
     )
   await page.getByRole('button', { name: 'Leer oferta' }).click()
   await expect(page.getByRole('heading', { name: 'Esto es lo que encontramos' })).toBeVisible()
+  await expect(page.getByText('Data Analyst Junior', { exact: true })).toBeVisible()
   await expect(page.getByText('Requisitos técnicos')).toBeVisible()
+  if (testInfo.project.name === 'desktop')
+    await page.screenshot({ path: 'artifacts/analyzer-requirements-desktop.png', fullPage: true })
   await page.getByRole('button', { name: 'Ver análisis general' }).click()
   await expect(page.getByRole('heading', { name: 'Análisis general de la oferta' })).toBeVisible()
-  await expect(page.getByText('Descripción pegada por ti')).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: '¿Para quién puede ser este puesto?' }),
+  ).toBeVisible()
+  await expect(page.getByText(/Este puesto puede ser una buena opción para quienes/)).toBeVisible()
+  await expect(page.getByText('Data Analyst Junior', { exact: true })).toBeVisible()
   await expect(page.getByText('Lo que piden')).toBeVisible()
   await expect(page.getByText('Compatibilidad con tu perfil')).toHaveCount(0)
   await expect(page.getByText('Tú cumples')).toHaveCount(0)
@@ -102,6 +114,26 @@ test('reads pasted text and then shows the general offer analysis', async ({ pag
   await expect(page.getByText('Python', { exact: true }).first()).toBeVisible()
   if (testInfo.project.name === 'desktop')
     await page.screenshot({ path: 'artifacts/analyzer-result-desktop.png', fullPage: true })
+})
+
+test('returns to the detected requirements without reading the offer again', async ({ page }) => {
+  let calls = 0
+  await page.route('**/api/analyze', async (route) => {
+    calls++
+    await route.fulfill({ json: result })
+  })
+  await page.goto('/')
+  await page
+    .getByLabel('Enlace público de la oferta')
+    .fill('https://careers.example.com/jobs/data-analyst')
+  await page.getByRole('button', { name: 'Leer oferta' }).click()
+  await page.getByRole('button', { name: 'Ver análisis general' }).click()
+  await page.getByRole('button', { name: 'Revisar requisitos' }).click()
+
+  await expect(page.getByRole('heading', { name: 'Esto es lo que encontramos' })).toBeVisible()
+  await expect(page.getByText('Data Analyst Junior', { exact: true })).toBeVisible()
+  await expect(page.getByText('Requisitos técnicos')).toBeVisible()
+  expect(calls).toBe(1)
 })
 
 test('uses one source at a time and sends the general analysis request with a URL', async ({
