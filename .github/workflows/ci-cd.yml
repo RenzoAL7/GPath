@@ -8,7 +8,8 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: gpath-${{ github.workflow }}-${{ github.ref }}
+  # PR validation must not cancel the delivery run that starts when that PR merges.
+  group: gpath-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -121,7 +122,8 @@ jobs:
             org.opencontainers.image.source=https://github.com/RenzoAL7/GPath
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=web
-          cache-to: type=gha,mode=max,scope=web
+          # PR events may restore the Actions cache but cannot always reserve it.
+          cache-to: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'type=gha,mode=max,scope=web,ignore-error=true' || '' }}
           provenance: true
           sbom: true
 
@@ -162,7 +164,8 @@ jobs:
             org.opencontainers.image.source=https://github.com/RenzoAL7/GPath
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=api
-          cache-to: type=gha,mode=max,scope=api
+          # Cache export is only a main-delivery optimization, never a PR gate.
+          cache-to: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'type=gha,mode=max,scope=api,ignore-error=true' || '' }}
           provenance: true
           sbom: true
 
