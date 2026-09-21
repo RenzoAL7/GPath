@@ -73,9 +73,7 @@ test('starts with a centered source step and no target-role panel', async ({ pag
     page.getByRole('heading', { name: 'Entiende una oferta antes de postular' }),
   ).toBeVisible()
   await expect(page.locator('header').getByText('GPath', { exact: true })).toHaveCount(0)
-  await expect(
-    page.getByAltText('Letras y símbolos de colores que representan los requisitos de una oferta.'),
-  ).toBeVisible()
+  await expect(page.getByAltText('Ícono de GPath')).toBeVisible()
   await expect(page.getByText('¿Qué puesto buscas?')).toHaveCount(0)
   await expect(page.getByText('Tu perfil')).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Data Analyst/ })).toHaveCount(0)

@@ -160,8 +160,8 @@ ul {
 }
 
 .hero-illustration {
-  width: min(100%, 360px);
-  margin: 0;
+  width: 156px;
+  margin: 0 34px 0 0;
   justify-self: end;
 }
 
@@ -834,6 +834,11 @@ footer span {
     padding-top: 52px;
   }
 
+  .hero-illustration {
+    width: 132px;
+    margin-right: 14px;
+  }
+
   .hero h1 {
     letter-spacing: -2.1px;
   }
@@ -888,8 +893,9 @@ footer span {
   }
 
   .hero-illustration {
-    width: min(250px, 76vw);
+    width: 112px;
     margin-top: 6px;
+    margin-right: 0;
     justify-self: center;
   }
 

@@ -351,10 +351,7 @@ export default function App() {
             </p>
           </div>
           <figure className="hero-illustration">
-            <img
-              src="/offer-letterplay-v1.png"
-              alt="Letras y símbolos de colores que representan los requisitos de una oferta."
-            />
+            <img src="/gpath-mark.svg" alt="Ícono de GPath" width="156" height="156" />
           </figure>
         </section>
 
