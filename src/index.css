@@ -94,44 +94,60 @@ ul {
   display: flex;
   align-items: center;
   max-width: 1040px;
-  min-height: 74px;
+  min-height: 82px;
   margin: 0 auto;
   border-bottom: 1px solid var(--line-soft);
+}
+
+.brand-block {
+  padding: 15px 0;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   color: var(--ink);
   font-family: 'Space Grotesk', sans-serif;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.45px;
   text-decoration: none;
 }
 
-.brand img {
-  display: block;
-  width: 32px;
-  height: 32px;
+.brand-name {
+  font-size: 21px;
+  letter-spacing: -0.8px;
+}
+
+.brand-divider {
+  color: var(--line);
+  font-weight: 400;
+}
+
+.brand-product {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.brand-tagline {
+  margin-top: 3px;
+  color: var(--subtle);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 .hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.12fr) minmax(210px, 0.7fr);
-  align-items: center;
-  gap: 34px;
   max-width: 930px;
   margin: 0 auto;
-  padding: 52px 20px 34px;
+  padding: 48px 20px 34px;
   text-align: left;
 }
 
 .step-kicker,
 .section-label,
 .result-topline,
-.offer-details dt,
 .detected-details dt {
   color: var(--subtle);
   font-family: 'IBM Plex Mono', monospace;
@@ -159,18 +175,6 @@ ul {
   line-height: 1.5;
 }
 
-.hero-illustration {
-  width: 156px;
-  margin: 0 34px 0 0;
-  justify-self: end;
-}
-
-.hero-illustration img {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
 .workflow-nav {
   max-width: 930px;
   margin: 0 auto 18px;
@@ -185,30 +189,44 @@ ul {
 }
 
 .workflow-nav li {
+  min-width: 0;
+}
+
+.workflow-step {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  width: 100%;
   min-height: 44px;
+  padding: 0 14px;
   border: 1px solid transparent;
   border-radius: 999px;
+  background: transparent;
   color: var(--subtle);
   font-size: 13px;
+  font-weight: 400;
   transition:
     background-color 160ms ease,
     border-color 160ms ease,
     color 160ms ease;
 }
 
-.workflow-nav li.current {
+.workflow-step.current,
+.workflow-step.ready {
   border-color: #bdc8ff;
   background: var(--surface);
   color: var(--accent);
   font-weight: 600;
 }
 
-.workflow-nav li.done {
+.workflow-step.done {
   color: var(--green);
+}
+
+.workflow-step:hover:not(:disabled) {
+  border-color: #aebcf7;
+  background: var(--accent-soft);
 }
 
 .step-number {
@@ -344,8 +362,7 @@ textarea:disabled {
 }
 
 .manual-source-toggle:hover:not(:disabled),
-.result-back:hover:not(:disabled),
-.result-reset:hover:not(:disabled) {
+.original-link:hover {
   text-decoration: underline;
 }
 
@@ -422,18 +439,6 @@ textarea:disabled {
 .retry-button:hover:not(:disabled) {
   border-color: #a9a9af;
   background: #f5f5f7;
-}
-
-.step-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-top: 34px;
-}
-
-.step-actions .primary-action {
-  margin-top: 0;
 }
 
 .step-heading-row {
@@ -533,23 +538,20 @@ textarea:disabled {
   border-left: 1px solid var(--line-soft);
 }
 
-.detected-details dl,
-.offer-details dl {
+.detected-details dl {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 17px 22px;
   margin-top: 15px;
 }
 
-.detected-details dl > div,
-.offer-details dl > div {
+.detected-details dl > div {
   min-width: 0;
   padding-bottom: 10px;
   border-bottom: 1px solid var(--line-soft);
 }
 
-.detected-details dd,
-.offer-details dd {
+.detected-details dd {
   margin-top: 5px;
   color: var(--ink);
   font-size: 14px;
@@ -628,34 +630,7 @@ textarea:disabled {
 }
 
 .result-topline {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.result-actions {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-}
-
-.result-back,
-.result-reset {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--accent);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.result-back svg {
-  width: 15px;
-  height: 15px;
+  overflow-wrap: anywhere;
 }
 
 .analysis-heading {
@@ -703,7 +678,6 @@ textarea:disabled {
   stroke-width: 2.5;
 }
 
-.offer-details,
 .explanation-section,
 .evidence-section,
 .limitations {
@@ -718,29 +692,6 @@ textarea:disabled {
   color: var(--ink);
   font-size: 16px;
   line-height: 1.6;
-}
-
-.result-columns {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 30px;
-  margin-top: 34px;
-}
-
-.result-columns > section {
-  min-width: 0;
-  padding-top: 20px;
-  border-top: 2px solid #cbd3f8;
-}
-
-.analysis-result h4 {
-  margin-top: 16px;
-  color: var(--muted);
-  font-family: 'IBM Plex Sans', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
 }
 
 .evidence-section ul,
@@ -803,10 +754,6 @@ textarea:disabled {
   text-decoration: none;
 }
 
-.original-link:hover {
-  text-decoration: underline;
-}
-
 footer {
   max-width: 930px;
   margin: 30px auto 0;
@@ -829,14 +776,7 @@ footer span {
   }
 
   .hero {
-    grid-template-columns: minmax(0, 1fr) minmax(170px, 0.55fr);
-    gap: 22px;
-    padding-top: 52px;
-  }
-
-  .hero-illustration {
-    width: 132px;
-    margin-right: 14px;
+    padding-top: 42px;
   }
 
   .hero h1 {
@@ -847,9 +787,8 @@ footer span {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .workflow-nav li {
+  .workflow-step {
     justify-content: flex-start;
-    padding: 0 12px;
   }
 
   .step-view,
@@ -871,12 +810,28 @@ footer span {
 
 @media (max-width: 560px) {
   .topbar {
-    min-height: 66px;
+    min-height: 0;
+  }
+
+  .brand-block {
+    padding: 13px 0;
+  }
+
+  .brand {
+    gap: 2px 7px;
+    flex-wrap: wrap;
+    font-size: 14px;
+  }
+
+  .brand-name {
+    font-size: 19px;
+  }
+
+  .brand-tagline {
+    font-size: 11px;
   }
 
   .hero {
-    grid-template-columns: 1fr;
-    gap: 6px;
     padding: 40px 6px 26px;
     text-align: center;
   }
@@ -892,19 +847,13 @@ footer span {
     font-size: 16px;
   }
 
-  .hero-illustration {
-    width: 112px;
-    margin-top: 6px;
-    margin-right: 0;
-    justify-self: center;
-  }
-
   .workflow-nav {
     margin-bottom: 12px;
   }
 
-  .workflow-nav li {
+  .workflow-step {
     min-height: 40px;
+    padding: 0 8px;
     font-size: 12px;
   }
 
@@ -927,15 +876,6 @@ footer span {
     width: 100%;
   }
 
-  .step-actions {
-    align-items: stretch;
-    flex-direction: column-reverse;
-  }
-
-  .step-actions .primary-action {
-    order: 2;
-  }
-
   .progress-panel,
   .error-message {
     margin-right: 20px;
@@ -946,15 +886,9 @@ footer span {
     grid-template-columns: 1fr;
   }
 
-  .result-topline,
   .analysis-heading {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .result-actions {
-    flex-wrap: wrap;
-    gap: 10px 16px;
   }
 
   .analysis-heading h2 {
@@ -962,9 +896,7 @@ footer span {
     letter-spacing: -1.6px;
   }
 
-  .result-columns,
-  .detected-details dl,
-  .offer-details dl {
+  .detected-details dl {
     grid-template-columns: 1fr;
     gap: 19px;
   }

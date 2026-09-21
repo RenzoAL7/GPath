@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { FiArrowLeft, FiArrowRight, FiCheck, FiExternalLink } from 'react-icons/fi'
+import { FiArrowRight, FiCheck, FiExternalLink } from 'react-icons/fi'
 
 type TargetRoleId =
   | 'data-analyst'
@@ -290,29 +290,25 @@ export default function App() {
     void analyze(input, 'offer')
   }
 
-  function continueToResult() {
-    if (!inspection) return
-    setError('')
-    setResult(inspection)
-    setPhase('result')
+  function hasSavedOffer() {
+    return Boolean(inspection || result)
   }
 
-  function returnToInspection() {
-    if (!inspection && result) setInspection(result)
-    setError('')
-    setPhase('offer')
-  }
+  function goToWorkflowStep(nextPhase: WorkflowPhase) {
+    if (loading) return
+    if (nextPhase !== 'source' && !hasSavedOffer()) return
 
-  function resetSource() {
-    request.current?.abort()
-    setUrl('')
-    setDescription('')
-    setShowManualDescription(false)
-    setInspection(null)
-    setResult(null)
-    setLastRequest(null)
-    setLastPhase(null)
     setError('')
+    if (nextPhase === 'offer') {
+      if (!inspection && result) setInspection(result)
+      setPhase('offer')
+      return
+    }
+    if (nextPhase === 'result') {
+      if (!result && inspection) setResult(inspection)
+      setPhase('result')
+      return
+    }
     setPhase('source')
   }
 
@@ -332,13 +328,25 @@ export default function App() {
 
   const activeStepIndex = workflowSteps.findIndex((step) => step.id === phase)
 
+  function workflowStepClass(step: WorkflowPhase, index: number) {
+    if (step === phase) return 'current'
+    if (index < activeStepIndex) return 'done'
+    return hasSavedOffer() ? 'ready' : ''
+  }
+
   return (
     <div className="shell">
       <header className="topbar">
-        <a className="brand" href="/" aria-label="Inicio">
-          <img src="/gpath-mark.svg" alt="" width="32" height="32" />
-          <span>Analizador de ofertas</span>
-        </a>
+        <div className="brand-block">
+          <a className="brand" href="/" aria-label="Ir al inicio de GrowPath">
+            <span className="brand-name">GrowPath</span>
+            <span className="brand-divider" aria-hidden="true">
+              |
+            </span>
+            <span className="brand-product">Analizador de ofertas</span>
+          </a>
+          <p className="brand-tagline">Tu ruta rápida para entender una oferta.</p>
+        </div>
       </header>
 
       <main>
@@ -350,24 +358,25 @@ export default function App() {
               lugar.
             </p>
           </div>
-          <figure className="hero-illustration">
-            <img src="/gpath-mark.svg" alt="Ícono de GPath" width="156" height="156" />
-          </figure>
         </section>
 
         <nav className="workflow-nav" aria-label="Pasos del análisis">
           <ol>
             {workflowSteps.map((step, index) => (
-              <li
-                className={
-                  index === activeStepIndex ? 'current' : index < activeStepIndex ? 'done' : ''
-                }
-                key={step.id}
-              >
-                <span className="step-number" aria-hidden="true">
-                  {index < activeStepIndex ? <FiCheck /> : String(index + 1).padStart(2, '0')}
-                </span>
-                <span>{step.label}</span>
+              <li key={step.id}>
+                <button
+                  aria-current={step.id === phase ? 'step' : undefined}
+                  aria-label={`Ir a ${step.label}`}
+                  className={`workflow-step ${workflowStepClass(step.id, index)}`}
+                  disabled={loading || (step.id !== 'source' && !hasSavedOffer())}
+                  onClick={() => goToWorkflowStep(step.id)}
+                  type="button"
+                >
+                  <span className="step-number" aria-hidden="true">
+                    {index < activeStepIndex ? <FiCheck /> : String(index + 1).padStart(2, '0')}
+                  </span>
+                  <span>{step.label}</span>
+                </button>
               </li>
             ))}
           </ol>
@@ -494,14 +503,24 @@ export default function App() {
                 </section>
               </div>
 
-              <div className="step-actions">
-                <button className="secondary-action" type="button" onClick={resetSource}>
-                  <FiArrowLeft aria-hidden="true" /> Otra oferta
-                </button>
-                <button className="primary-action" type="button" onClick={continueToResult}>
-                  Ver análisis general <FiArrowRight aria-hidden="true" />
-                </button>
-              </div>
+              <section
+                className="inspection-evidence evidence-section"
+                aria-labelledby="evidence-title"
+              >
+                <h3 id="evidence-title">Evidencias de la oferta</h3>
+                {inspection.evidence.length ? (
+                  <ul>
+                    {inspection.evidence.map((evidence) => (
+                      <li key={`${evidence.label}-${evidence.text}`}>
+                        <strong>{evidence.label}</strong>
+                        <blockquote>{evidence.text}</blockquote>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="empty-list">No se devolvieron evidencias textuales.</p>
+                )}
+              </section>
             </section>
           )}
 
@@ -539,28 +558,19 @@ export default function App() {
 
           {phase === 'result' && result && (
             <section className="analysis-result" aria-labelledby="analysis-result-title">
-              <div className="result-topline">
-                <span>
-                  {result.offer?.title ||
-                    (result.input.type === 'url'
-                      ? 'Oferta leída desde el enlace'
-                      : 'Descripción pegada por ti')}
-                </span>
-                <div className="result-actions">
-                  <button className="result-back" type="button" onClick={returnToInspection}>
-                    <FiArrowLeft aria-hidden="true" /> Revisar requisitos
-                  </button>
-                  <button className="result-reset" type="button" onClick={resetSource}>
-                    Analizar otra oferta
-                  </button>
-                </div>
-              </div>
+              <p className="result-topline">
+                {result.offer?.title ||
+                  (result.input.type === 'url'
+                    ? 'Oferta leída desde el enlace'
+                    : 'Descripción pegada por ti')}
+              </p>
               <div className="analysis-heading">
                 <div>
                   <p className="section-label">Paso 3 · Análisis general</p>
                   <h2 id="analysis-result-title">Análisis general de la oferta</h2>
                   <p className="analysis-lede">
-                    Una lectura de los requisitos, condiciones y evidencias visibles en la oferta.
+                    Una interpretación de lo detectado. Los requisitos y condiciones se conservan en
+                    el paso anterior.
                   </p>
                 </div>
                 <div className="analysis-mark" aria-hidden="true">
@@ -571,61 +581,6 @@ export default function App() {
               <section className="explanation-section" aria-labelledby="explanation-title">
                 <h3 id="explanation-title">¿Para quién puede ser este puesto?</h3>
                 <p>{audienceSummary(result)}</p>
-              </section>
-
-              <div className="result-columns">
-                <section aria-labelledby="requirements-title">
-                  <h3 id="requirements-title">Lo que piden</h3>
-                  <h4>Técnicas</h4>
-                  {listOrEmpty(
-                    result.requirements.technical,
-                    'No se identificaron requisitos técnicos claros.',
-                  )}
-                  <h4>Deseables</h4>
-                  {listOrEmpty(
-                    result.requirements.preferred,
-                    'No se identificaron requisitos deseables claros.',
-                  )}
-                </section>
-                <section className="offer-details" aria-labelledby="details-title">
-                  <h3 id="details-title">Datos de la oferta</h3>
-                  <dl>
-                    <div>
-                      <dt>Nivel detectado</dt>
-                      <dd>{result.requirements.level || 'No indicado'}</dd>
-                    </div>
-                    <div>
-                      <dt>Ubicación</dt>
-                      <dd>{result.requirements.location || 'No indicada'}</dd>
-                    </div>
-                    <div>
-                      <dt>Modalidad</dt>
-                      <dd>{result.requirements.workMode || 'No indicada'}</dd>
-                    </div>
-                    {result.requirements.salary && (
-                      <div>
-                        <dt>Salario</dt>
-                        <dd>{result.requirements.salary}</dd>
-                      </div>
-                    )}
-                  </dl>
-                </section>
-              </div>
-
-              <section className="evidence-section" aria-labelledby="evidence-title">
-                <h3 id="evidence-title">Evidencias de la oferta</h3>
-                {result.evidence.length ? (
-                  <ul>
-                    {result.evidence.map((evidence) => (
-                      <li key={`${evidence.label}-${evidence.text}`}>
-                        <strong>{evidence.label}</strong>
-                        <blockquote>{evidence.text}</blockquote>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="empty-list">No se devolvieron evidencias textuales.</p>
-                )}
               </section>
 
               <section className="limitations" aria-labelledby="limitations-title">
@@ -653,7 +608,7 @@ export default function App() {
 
       <footer>
         <p>
-          GPath <span>Analizador de ofertas</span>
+          GrowPath <span>Analizador de ofertas</span>
         </p>
       </footer>
     </div>

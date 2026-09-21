@@ -83,6 +83,17 @@ test('returns a source-backed offer title for headings and pasted descriptions',
   )
 })
 
+test('keeps a hybrid modality when the schedule also mentions remote days', () => {
+  const facts = extractOfferFacts(
+    'Modalidad: Híbrida — 2 días en oficina (Lima) / 3 días remoto.',
+    'other',
+  )
+
+  assert.equal(facts.location, 'Perú')
+  assert.equal(facts.workMode, 'Híbrido')
+  assert.ok(facts.evidence.some((item) => item.label === 'Ubicación y modalidad'))
+})
+
 function factor(result, id) {
   const value = result.factors.find((current) => current.id === id)
   assert.ok(value, `missing factor ${id}`)
