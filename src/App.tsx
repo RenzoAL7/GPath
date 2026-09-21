@@ -23,6 +23,7 @@ type AnalyzeRequest = {
 
 type AnalysisResult = {
   input: { type: 'url' | 'text'; originalUrl?: string }
+  offer?: { title: string | null }
   targetRole: { id: TargetRoleId; label: string }
   compatibility: {
     score: number
@@ -85,6 +86,8 @@ function parseResult(value: unknown): AnalysisResult {
   if (
     !result ||
     !['url', 'text'].includes(result.input?.type) ||
+    (result.offer !== undefined &&
+      (!result.offer || (result.offer.title !== null && typeof result.offer.title !== 'string'))) ||
     typeof result.targetRole?.id !== 'string' ||
     typeof result.targetRole?.label !== 'string' ||
     !Number.isFinite(result.compatibility?.score) ||
@@ -165,6 +168,27 @@ function listOrEmpty(values: string[], emptyText: string) {
       ))}
     </ul>
   )
+}
+
+function formatList(values: string[]) {
+  if (values.length < 2) return values[0] || ''
+  if (values.length === 2) return `${values[0]} y ${values[1]}`
+  return `${values.slice(0, -1).join(', ')} y ${values[values.length - 1]}`
+}
+
+function audienceSummary(result: AnalysisResult) {
+  const technical = result.requirements.technical.slice(0, 3)
+  const preferred = result.requirements.preferred.slice(0, 2)
+  const audience = /practicante|internship/i.test(result.requirements.level || '')
+    ? 'quienes están iniciando su experiencia profesional'
+    : /junior/i.test(result.requirements.level || '')
+      ? 'quienes ya tienen una base profesional y quieren seguir desarrollándose'
+      : 'quienes quieren desarrollarse en un puesto de este tipo'
+  const skills = technical.length ? ` La oferta pide experiencia con ${formatList(technical)}.` : ''
+  const plus = preferred.length
+    ? ` ${formatList(preferred)} aparece como un requisito deseable.`
+    : ''
+  return `Este puesto puede ser una buena opción para ${audience}.${skills}${plus} Revisa las condiciones y las evidencias antes de postular.`
 }
 
 export default function App() {
@@ -273,6 +297,12 @@ export default function App() {
     setPhase('result')
   }
 
+  function returnToInspection() {
+    if (!inspection && result) setInspection(result)
+    setError('')
+    setPhase('offer')
+  }
+
   function resetSource() {
     request.current?.abort()
     setUrl('')
@@ -305,20 +335,24 @@ export default function App() {
   return (
     <div className="shell">
       <header className="topbar">
-        <a className="brand" href="/" aria-label="GPath, inicio">
-          GPath
+        <a className="brand" href="/" aria-label="Inicio">
+          <img src="/gpath-mark.svg" alt="" width="32" height="32" />
+          <span>Analizador de ofertas</span>
         </a>
-        <span className="brand-detail">Analizador de ofertas</span>
       </header>
 
       <main>
         <section className="hero" aria-labelledby="analyzer-title">
-          <p className="hero-kicker">GPath · lectura de ofertas</p>
-          <h1 id="analyzer-title">Entiende una oferta antes de postular</h1>
-          <p>
-            Lee los requisitos, las condiciones y las señales importantes de una oferta en un solo
-            lugar.
-          </p>
+          <div className="hero-copy">
+            <h1 id="analyzer-title">Entiende una oferta antes de postular</h1>
+            <p>
+              Lee los requisitos, las condiciones y las señales importantes de una oferta en un solo
+              lugar.
+            </p>
+          </div>
+          <figure className="hero-illustration">
+            <img src="/gpath-mark.svg" alt="Ícono de GPath" width="156" height="156" />
+          </figure>
         </section>
 
         <nav className="workflow-nav" aria-label="Pasos del análisis">
@@ -417,6 +451,11 @@ export default function App() {
                 </span>
               </div>
 
+              <div className="offer-identity">
+                <p className="section-label">Puesto de la oferta</p>
+                <strong>{inspection.offer?.title || 'Puesto no identificado'}</strong>
+              </div>
+
               <div className="offer-summary">
                 <section aria-labelledby="detected-requirements-title">
                   <h3 id="detected-requirements-title">Requisitos técnicos</h3>
@@ -502,13 +541,19 @@ export default function App() {
             <section className="analysis-result" aria-labelledby="analysis-result-title">
               <div className="result-topline">
                 <span>
-                  {result.input.type === 'url'
-                    ? 'Oferta leída desde el enlace'
-                    : 'Descripción pegada por ti'}
+                  {result.offer?.title ||
+                    (result.input.type === 'url'
+                      ? 'Oferta leída desde el enlace'
+                      : 'Descripción pegada por ti')}
                 </span>
-                <button className="result-reset" type="button" onClick={resetSource}>
-                  Analizar otra oferta
-                </button>
+                <div className="result-actions">
+                  <button className="result-back" type="button" onClick={returnToInspection}>
+                    <FiArrowLeft aria-hidden="true" /> Revisar requisitos
+                  </button>
+                  <button className="result-reset" type="button" onClick={resetSource}>
+                    Analizar otra oferta
+                  </button>
+                </div>
               </div>
               <div className="analysis-heading">
                 <div>
@@ -524,8 +569,8 @@ export default function App() {
               </div>
 
               <section className="explanation-section" aria-labelledby="explanation-title">
-                <h3 id="explanation-title">Lectura rápida</h3>
-                <p>{result.explanation}</p>
+                <h3 id="explanation-title">¿Para quién puede ser este puesto?</h3>
+                <p>{audienceSummary(result)}</p>
               </section>
 
               <div className="result-columns">

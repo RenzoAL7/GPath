@@ -4,6 +4,7 @@ const maxDescriptionLength = 40_000
 const maxSkills = 24
 const maxSkillLength = 60
 const maxEvidenceLength = 320
+const maxOfferTitleLength = 120
 
 const roleProfiles = Object.freeze({
   'data-analyst': {
@@ -240,6 +241,59 @@ function metadataOfferText(value) {
       fragments.push(attributes.content)
   }
   return fragments.join('\n')
+}
+
+function compactOfferTitle(value) {
+  const title = decodeHtml(String(value || ''))
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (!title || title.length > maxOfferTitleLength) return null
+  return title
+}
+
+function metadataOfferTitle(value) {
+  if (typeof value !== 'string') return null
+  const metadata = []
+  for (const match of value.matchAll(/<meta\b[^>]*>/gi)) {
+    const attributes = Object.fromEntries(
+      [...match[0].matchAll(/([\w:-]+)\s*=\s*(["'])([\s\S]*?)\2/gi)].map(([, name, , content]) => [
+        name.toLocaleLowerCase('en'),
+        content,
+      ]),
+    )
+    const name = (attributes.name || attributes.property || '').toLocaleLowerCase('en')
+    if ((name === 'og:title' || name === 'twitter:title') && attributes.content)
+      metadata.push(attributes.content)
+  }
+  const heading = value.match(/<h1\b[^>]*>([\s\S]*?)<\s*\/\s*h1\s*>/i)?.[1]
+  const pageTitle = value.match(/<title\b[^>]*>([\s\S]*?)<\s*\/\s*title\s*>/i)?.[1]
+  return [heading, ...metadata, pageTitle].map(compactOfferTitle).find(Boolean) || null
+}
+
+function titleFromText(value) {
+  const rolePattern =
+    /\b(?:data\s+(?:analyst|engineer|scientist)|analista(?:\s+de)?\s+datos|ingenier[oa](?:\s+de)?\s+datos|backend(?:\s+(?:developer|engineer))?|desarrollador(?:a)?\s+(?:de\s+)?backend|cloud\s*(?:\/|&|and)?\s*devops|(?:machine learning|ml|ia)(?:\s+(?:engineer|intern|practicante))?|practicante(?:\s+de)?\s+[\p{L}\d/& -]{2,48})(?:\s+(?:junior|internship|intern|practicante))?\b/iu
+  const roleMatch = compactOfferTitle(value.match(rolePattern)?.[0])
+  if (roleMatch) return roleMatch
+
+  const lines = value
+    .split(/\n+/)
+    .map((line) => compactOfferTitle(line))
+    .filter(Boolean)
+  const standalone = lines.find(
+    (line) =>
+      line.length <= 90 &&
+      !/[.!?]$/.test(line) &&
+      !/^(?:buscamos|estamos buscando|se busca|conoce|acerca de|sobre el puesto)\b/i.test(line),
+  )
+  if (standalone) return standalone
+  return null
+}
+
+/** Returns a visible title only when it appears in the source offer text. */
+export function extractOfferTitle(sourceText, cleanedText = cleanOfferText(sourceText)) {
+  return metadataOfferTitle(sourceText) || titleFromText(cleanedText)
 }
 
 /** Removes markup and scripts without executing any content from the offer. */
@@ -745,6 +799,7 @@ export function createOfferAnalyzer({
       }
       return {
         input,
+        offer: { title: extractOfferTitle(source?.text, cleaned) },
         targetRole: { id: parsed.targetRole, label: targetRoles[parsed.targetRole] },
         compatibility: scored.compatibility,
         factors: scored.factors,

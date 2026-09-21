@@ -32,6 +32,7 @@ const analyzerResponse = {
     type: 'url',
     originalUrl: 'https://jobs.example.test/data-analyst?token=private-offer-token',
   },
+  offer: { title: 'Data Analyst' },
   targetRole: { id: 'data-analyst', label: 'Data Analyst' },
   compatibility: {
     score: 83,
