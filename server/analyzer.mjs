@@ -584,16 +584,19 @@ export function calculateCompatibility({
   }
 }
 
-function fallbackExplanation({ compatibility, profile, requirements }) {
-  const intro =
-    compatibility.scope === 'profile'
+function fallbackExplanation({ compatibility, profile, requirements, targetRole = 'other' }) {
+  const general = targetRole === 'other' && !profile.provided
+  const intro = general
+    ? 'La lectura general se basa en el texto visible de la oferta.'
+    : compatibility.scope === 'profile'
       ? `La compatibilidad orientativa es ${compatibility.score}/100.`
       : `La compatibilidad orientativa es ${compatibility.score}/100 con el puesto objetivo.`
   const skills = requirements.technical.length
     ? `La oferta menciona ${requirements.technical.slice(0, 5).join(', ')}.`
     : 'No se detectaron tecnologías técnicas suficientes en el texto disponible.'
-  const next =
-    compatibility.scope === 'profile'
+  const next = general
+    ? 'Revisa las evidencias y condiciones detectadas antes de postular.'
+    : compatibility.scope === 'profile'
       ? profile.gaps.length
         ? `Antes de postular, revisa estas brechas: ${profile.gaps.slice(0, 4).join(', ')}.`
         : 'No se detectaron brechas técnicas directas con las habilidades que indicaste.'
@@ -613,12 +616,17 @@ function validExplanation(value, allowedSkills) {
   return hasUnsupportedSkill ? null : output
 }
 
-function analysisLimitations({ input, profileProvided, modelUse, facts }) {
+function analysisLimitations({ input, profileProvided, modelUse, facts, targetRole = 'other' }) {
+  const general = targetRole === 'other' && !profileProvided
   const values = [
-    'El puntaje es orientativo: no garantiza una entrevista, una oferta ni que la vacante siga activa.',
+    general
+      ? 'El análisis es orientativo: no garantiza una entrevista, una oferta ni que la vacante siga activa.'
+      : 'El puntaje es orientativo: no garantiza una entrevista, una oferta ni que la vacante siga activa.',
     'Solo se evalúa el texto que se pudo leer; requisitos implícitos o contenido que exige iniciar sesión pueden no aparecer.',
   ]
-  if (!profileProvided)
+  if (general)
+    values.push('El análisis se basa únicamente en el texto público disponible de la oferta.')
+  else if (!profileProvided)
     values.push(
       'No indicaste habilidades actuales, por eso no se presenta como compatibilidad personal.',
     )
@@ -627,10 +635,16 @@ function analysisLimitations({ input, profileProvided, modelUse, facts }) {
   if (!facts.salary) values.push('No se detectó un salario verificable en el texto disponible.')
   if (!modelUse.extractor || !modelUse.semantic || !modelUse.explainer)
     values.push(
-      'El servicio local de modelos no estuvo disponible en todas las etapas; se muestran solo datos verificables y el puntaje determinista.',
+      general
+        ? 'El servicio local de modelos no estuvo disponible en todas las etapas; se muestran solo datos verificables.'
+        : 'El servicio local de modelos no estuvo disponible en todas las etapas; se muestran solo datos verificables y el puntaje determinista.',
     )
   if (!modelUse.semantic)
-    values.push('La similitud semántica usa una estimación de respaldo; JobBERT no se ejecutó.')
+    values.push(
+      general
+        ? 'La lectura semántica usa una estimación de respaldo; JobBERT no se ejecutó.'
+        : 'La similitud semántica usa una estimación de respaldo; JobBERT no se ejecutó.',
+    )
   return values
 }
 
@@ -704,7 +718,11 @@ export function createOfferAnalyzer({
         semanticSimilarity: semantic,
         targetRole: parsed.targetRole,
       })
-      let explanation = fallbackExplanation({ ...scored, requirements })
+      let explanation = fallbackExplanation({
+        ...scored,
+        requirements,
+        targetRole: parsed.targetRole,
+      })
       if (typeof explain === 'function') {
         try {
           const candidate = validExplanation(
@@ -746,6 +764,7 @@ export function createOfferAnalyzer({
           profileProvided: scored.profile.provided,
           modelUse,
           facts: requirements,
+          targetRole: parsed.targetRole,
         }),
       }
     },
