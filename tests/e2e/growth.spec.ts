@@ -66,18 +66,24 @@ const result = {
   limitations: ['El análisis depende del texto público disponible.'],
 }
 
-test('starts with a centered source step and no target-role panel', async ({ page }) => {
+test('starts with a source step and no target-role panel', async ({ page }) => {
   await page.goto('/')
   await expect(page).toHaveTitle('GPath — Analizador de ofertas')
   await expect(
     page.getByRole('heading', { name: 'Entiende una oferta antes de postular' }),
   ).toBeVisible()
-  await expect(page.locator('header').getByText('GPath', { exact: true })).toHaveCount(0)
-  await expect(page.getByAltText('Ícono de GPath')).toBeVisible()
+  await expect(page.locator('header').getByText('GrowPath', { exact: true })).toBeVisible()
+  await expect(
+    page.locator('header').getByText('Analizador de ofertas', { exact: true }),
+  ).toBeVisible()
+  await expect(page.getByText('Tu ruta rápida para entender una oferta.')).toBeVisible()
+  await expect(page.getByAltText('Ícono de GPath')).toHaveCount(0)
   await expect(page.getByText('¿Qué puesto buscas?')).toHaveCount(0)
   await expect(page.getByText('Tu perfil')).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Data Analyst/ })).toHaveCount(0)
-  await expect(page.getByRole('button', { name: 'Leer oferta' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Leer oferta', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Ir a Revisar requisitos' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Ir a Ver análisis' })).toBeDisabled()
   await expect(page.getByText('Pega el enlace de una oferta')).toBeVisible()
   await expect(page.getByLabel('Pega la descripción de la oferta')).toHaveCount(0)
 })
@@ -90,31 +96,33 @@ test('reads pasted text and then shows the general offer analysis', async ({ pag
     .fill(
       'Buscamos Data Analyst Junior con Python y SQL. Trabajo remoto para Perú. Salario: S/ 3,000.',
     )
-  await page.getByRole('button', { name: 'Leer oferta' }).click()
+  await page.getByRole('button', { name: 'Leer oferta', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Esto es lo que encontramos' })).toBeVisible()
   await expect(page.getByText('Data Analyst Junior', { exact: true })).toBeVisible()
   await expect(page.getByText('Requisitos técnicos')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Evidencias de la oferta' })).toBeVisible()
   if (testInfo.project.name === 'desktop')
     await page.screenshot({ path: 'artifacts/analyzer-requirements-desktop.png', fullPage: true })
-  await page.getByRole('button', { name: 'Ver análisis general' }).click()
+  await page.getByRole('button', { name: 'Ir a Ver análisis' }).click()
   await expect(page.getByRole('heading', { name: 'Análisis general de la oferta' })).toBeVisible()
   await expect(
     page.getByRole('heading', { name: '¿Para quién puede ser este puesto?' }),
   ).toBeVisible()
   await expect(page.getByText(/Este puesto puede ser una buena opción para quienes/)).toBeVisible()
   await expect(page.getByText('Data Analyst Junior', { exact: true })).toBeVisible()
-  await expect(page.getByText('Lo que piden')).toBeVisible()
+  await expect(page.getByText('Lo que piden')).toHaveCount(0)
+  await expect(page.getByText('Requisitos técnicos')).toHaveCount(0)
   await expect(page.getByText('Compatibilidad con tu perfil')).toHaveCount(0)
   await expect(page.getByText('Tú cumples')).toHaveCount(0)
   await expect(page.getByRole('heading', { name: 'Te falta', exact: true })).toHaveCount(0)
-  await expect(page.getByText('Evidencias de la oferta')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Lectura general' })).toHaveCount(0)
+  await expect(page.getByText('Evidencias de la oferta')).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'Ver oferta original' })).toHaveCount(0)
-  await expect(page.getByText('Python', { exact: true }).first()).toBeVisible()
   if (testInfo.project.name === 'desktop')
     await page.screenshot({ path: 'artifacts/analyzer-result-desktop.png', fullPage: true })
 })
 
-test('returns to the detected requirements without reading the offer again', async ({ page }) => {
+test('moves through the workflow buttons without reading the offer again', async ({ page }) => {
   let calls = 0
   await page.route('**/api/analyze', async (route) => {
     calls++
@@ -124,13 +132,14 @@ test('returns to the detected requirements without reading the offer again', asy
   await page
     .getByLabel('Enlace público de la oferta')
     .fill('https://careers.example.com/jobs/data-analyst')
-  await page.getByRole('button', { name: 'Leer oferta' }).click()
-  await page.getByRole('button', { name: 'Ver análisis general' }).click()
-  await page.getByRole('button', { name: 'Revisar requisitos' }).click()
+  await page.getByRole('button', { name: 'Leer oferta', exact: true }).click()
+  await page.getByRole('button', { name: 'Ir a Ver análisis' }).click()
+  await page.getByRole('button', { name: 'Ir a Revisar requisitos' }).click()
 
   await expect(page.getByRole('heading', { name: 'Esto es lo que encontramos' })).toBeVisible()
   await expect(page.getByText('Data Analyst Junior', { exact: true })).toBeVisible()
   await expect(page.getByText('Requisitos técnicos')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Evidencias de la oferta' })).toBeVisible()
   expect(calls).toBe(1)
 })
 
@@ -147,8 +156,8 @@ test('uses one source at a time and sends the general analysis request with a UR
     .getByLabel('Enlace público de la oferta')
     .fill('https://careers.example.com/jobs/data-analyst')
   await expect(page.getByLabel('Pega la descripción de la oferta')).toHaveCount(0)
-  await page.getByRole('button', { name: 'Leer oferta' }).click()
-  await page.getByRole('button', { name: 'Ver análisis general' }).click()
+  await page.getByRole('button', { name: 'Leer oferta', exact: true }).click()
+  await page.getByRole('button', { name: 'Ir a Ver análisis' }).click()
   await expect(page.getByRole('link', { name: 'Ver oferta original' })).toHaveAttribute(
     'href',
     result.input.originalUrl,
@@ -184,7 +193,7 @@ test('turns a LinkedIn search link with a selected job into an individual offer 
     .getByLabel('Enlace público de la oferta')
     .fill('https://www.linkedin.com/jobs/search-results/?currentJobId=4463490846')
   await expect(page.getByText(/Ese enlace es una búsqueda de LinkedIn/)).toHaveCount(0)
-  await page.getByRole('button', { name: 'Leer oferta' }).click()
+  await page.getByRole('button', { name: 'Leer oferta', exact: true }).click()
   await expect(page.getByText('Esto es lo que encontramos')).toBeVisible()
 })
 
@@ -194,7 +203,7 @@ test('explains when a LinkedIn URL is only a search without a selected offer', a
     .getByLabel('Enlace público de la oferta')
     .fill('https://www.linkedin.com/jobs/search-results/?keywords=data%20engineer')
   await expect(page.getByText(/Ese enlace es una búsqueda de LinkedIn/)).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Leer oferta' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Leer oferta', exact: true })).toBeDisabled()
 })
 
 test('shows the real analysis stages while a request is pending', async ({ page }) => {
@@ -211,7 +220,7 @@ test('shows the real analysis stages while a request is pending', async ({ page 
   await page
     .getByLabel('Pega la descripción de la oferta')
     .fill('Buscamos Data Analyst Junior con Python y SQL. Trabajo remoto para Perú.')
-  await page.getByRole('button', { name: 'Leer oferta' }).click()
+  await page.getByRole('button', { name: 'Leer oferta', exact: true }).click()
   await expect(page.getByLabel('Progreso del análisis')).toContainText('Leyendo la oferta.')
   await expect(page.getByLabel('Progreso del análisis')).toContainText('Extrayendo requisitos.')
   await expect(page.getByLabel('Progreso del análisis')).toContainText('Organizando los hallazgos.')
@@ -232,7 +241,7 @@ test('offers a retry when reading the offer fails', async ({ page }) => {
   await page
     .getByLabel('Pega la descripción de la oferta')
     .fill('Buscamos Data Analyst Junior con Python y SQL. Trabajo remoto para Perú.')
-  await page.getByRole('button', { name: 'Leer oferta' }).click()
+  await page.getByRole('button', { name: 'Leer oferta', exact: true }).click()
   await expect(page.getByRole('alert')).toContainText('No pudimos analizar la oferta')
   await page.getByRole('button', { name: 'Reintentar lectura' }).click()
   await expect(page.getByRole('heading', { name: 'Esto es lo que encontramos' })).toBeVisible()

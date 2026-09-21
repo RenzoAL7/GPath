@@ -358,8 +358,8 @@ function locationFromText(value) {
 }
 
 function workModeFromText(value) {
+  if (/\b(?:h[ií]brid[oa]|hybrid)\b/i.test(value)) return 'Híbrido'
   if (/\b(?:remoto|remote|work from home|teletrabajo)\b/i.test(value)) return 'Remoto'
-  if (/\b(?:híbrido|hibrido|hybrid)\b/i.test(value)) return 'Híbrido'
   if (/\b(?:presencial|on[- ]?site|in office)\b/i.test(value)) return 'Presencial'
   return null
 }
@@ -396,20 +396,28 @@ export function extractOfferFacts(cleanedText, targetRole = 'other') {
   const levelEvidence = firstEvidence(lines, /\b(?:internship|intern|practicante|junior)\b/i)
   const locationEvidence = firstEvidence(
     lines,
-    /\b(?:perú|peru|lima|latam|latin america|américa latina|america latina|remoto|remote|híbrido|hibrido|hybrid|presencial|on[- ]?site)\b/i,
+    /\b(?:perú|peru|lima|latam|latin america|américa latina|america latina|remoto|remote|h[ií]brid[oa]|hybrid|presencial|on[- ]?site)\b/i,
   )
+  const workModeEvidence =
+    firstEvidence(lines, /\b(?:h[ií]brid[oa]|hybrid)\b/i) ||
+    firstEvidence(lines, /\b(?:remoto|remote|work from home|teletrabajo)\b/i) ||
+    firstEvidence(lines, /\b(?:presencial|on[- ]?site|in office)\b/i)
   const salaryEvidence = firstEvidence(
     lines,
     /(?:s\/\.?\s?|usd\s?|us\$\s?|\$\s?)(?:\d{1,3}(?:[,.]\d{3})+|\d+)/i,
   )
   const level = levelEvidence ? levelFromText(levelEvidence) : null
   const location = locationEvidence ? locationFromText(locationEvidence) : null
-  const workMode = locationEvidence ? workModeFromText(locationEvidence) : null
+  const workMode = workModeEvidence ? workModeFromText(workModeEvidence) : null
+  const locationAndWorkModeEvidence =
+    locationEvidence && workModeEvidence && locationEvidence !== workModeEvidence
+      ? `${locationEvidence} ${workModeEvidence}`
+      : locationEvidence || workModeEvidence
   const salary = salaryEvidence ? salaryFromText(salaryEvidence) : null
   if (levelEvidence && level)
     evidence.push({ label: 'Nivel detectado', text: shorten(levelEvidence) })
-  if (locationEvidence && (location || workMode))
-    evidence.push({ label: 'Ubicación y modalidad', text: shorten(locationEvidence) })
+  if (locationAndWorkModeEvidence && (location || workMode))
+    evidence.push({ label: 'Ubicación y modalidad', text: shorten(locationAndWorkModeEvidence) })
   if (salaryEvidence && salary) evidence.push({ label: 'Salario', text: shorten(salaryEvidence) })
   const titleEvidence = roleEvidence(lines, targetRole)
   if (titleEvidence) evidence.push({ label: 'Puesto relacionado', text: shorten(titleEvidence) })
