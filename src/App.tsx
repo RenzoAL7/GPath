@@ -176,19 +176,92 @@ function formatList(values: string[]) {
   return `${values.slice(0, -1).join(', ')} y ${values[values.length - 1]}`
 }
 
+function offerTitle(result: AnalysisResult) {
+  return (
+    result.offer?.title ||
+    (result.input.type === 'url' ? 'Oferta leída desde el enlace' : 'Descripción pegada por ti')
+  )
+}
+
+function careerDirection(result: AnalysisResult) {
+  const context = `${offerTitle(result)} ${result.targetRole.label}`.toLocaleLowerCase('es-PE')
+
+  if (
+    /(?:datos|data)/.test(context) &&
+    /(?:inteligencia artificial|machine learning|\bia\b|\bml\b)/.test(context)
+  ) {
+    return 'datos e IA'
+  }
+  if (/(?:datos|data|anal[ií]tica|analytics|business intelligence|\bbi\b)/.test(context)) {
+    return 'datos y analítica'
+  }
+  if (/(?:backend|desarrollador|desarrollo|developer|software)/.test(context)) {
+    return 'desarrollo de software'
+  }
+  if (/(?:cloud|devops|infraestructura)/.test(context)) return 'cloud y DevOps'
+  if (/(?:inteligencia artificial|machine learning|\bia\b|\bml\b)/.test(context)) {
+    return 'IA y machine learning'
+  }
+  return null
+}
+
 function audienceSummary(result: AnalysisResult) {
+  const level = result.requirements.level || ''
+  const growthGoal = /practicante|internship/i.test(level)
+    ? 'construir una primera experiencia profesional'
+    : /junior/i.test(result.requirements.level || '')
+      ? 'fortalecer una base inicial con experiencia práctica'
+      : 'sumar experiencia aplicada y seguir creciendo'
+  const direction = careerDirection(result)
+
+  return direction
+    ? `Este puesto es para quienes van por el camino de ${direction} y quieren ${growthGoal}.`
+    : `Este puesto es para quienes quieren desarrollarse en este tipo de puesto y ${growthGoal}.`
+}
+
+function offerPros(result: AnalysisResult) {
   const technical = result.requirements.technical.slice(0, 3)
   const preferred = result.requirements.preferred.slice(0, 2)
-  const audience = /practicante|internship/i.test(result.requirements.level || '')
-    ? 'quienes están iniciando su experiencia profesional'
-    : /junior/i.test(result.requirements.level || '')
-      ? 'quienes ya tienen una base profesional y quieren seguir desarrollándose'
-      : 'quienes quieren desarrollarse en un puesto de este tipo'
-  const skills = technical.length ? ` La oferta pide experiencia con ${formatList(technical)}.` : ''
-  const plus = preferred.length
-    ? ` ${formatList(preferred)} aparece como un requisito deseable.`
-    : ''
-  return `Este puesto puede ser una buena opción para ${audience}.${skills}${plus} Revisa las condiciones y las evidencias antes de postular.`
+  const level = result.requirements.level || ''
+  const pros: string[] = []
+
+  if (technical.length) pros.push(`Tecnologías con valor práctico: ${formatList(technical)}.`)
+  if (preferred.length) {
+    pros.push(
+      `Conocer ${formatList(preferred)} puede diferenciar tu postulación porque aparece como deseable.`,
+    )
+  }
+  if (/practicante|internship|junior/i.test(level)) {
+    pros.push('El nivel indicado permite seguir aprendiendo con experiencia profesional aplicada.')
+  }
+
+  return pros.length
+    ? pros.slice(0, 3)
+    : ['La oferta da una primera señal clara sobre el tipo de experiencia que busca el equipo.']
+}
+
+function offerRecommendations(result: AnalysisResult) {
+  const technical = result.requirements.technical.slice(0, 3)
+  const preferred = result.requirements.preferred.slice(0, 2)
+  const recommendations: string[] = []
+
+  if (technical.length) {
+    recommendations.push(
+      `Para la entrevista, prepara un ejemplo concreto en el que hayas usado ${formatList(technical.slice(0, 2))}.`,
+    )
+    recommendations.push(
+      `Repasa los fundamentos de ${formatList(technical)} y ten listo un proyecto breve que muestre cómo los aplicas.`,
+    )
+  }
+  if (preferred.length) {
+    recommendations.push(
+      `Tener conocimientos básicos de ${formatList(preferred)} te ayudará a cubrir lo deseable.`,
+    )
+  }
+
+  return recommendations.length
+    ? recommendations.slice(0, 3)
+    : ['Conecta tus proyectos de clase o portafolio con las tareas descritas en la oferta.']
 }
 
 export default function App() {
@@ -558,19 +631,13 @@ export default function App() {
 
           {phase === 'result' && result && (
             <section className="analysis-result" aria-labelledby="analysis-result-title">
-              <p className="result-topline">
-                {result.offer?.title ||
-                  (result.input.type === 'url'
-                    ? 'Oferta leída desde el enlace'
-                    : 'Descripción pegada por ti')}
-              </p>
               <div className="analysis-heading">
                 <div>
                   <p className="section-label">Paso 3 · Análisis general</p>
-                  <h2 id="analysis-result-title">Análisis general de la oferta</h2>
+                  <p className="analysis-title-label">Puesto analizado</p>
+                  <h2 id="analysis-result-title">{offerTitle(result)}</h2>
                   <p className="analysis-lede">
-                    Una interpretación de lo detectado. Los requisitos y condiciones se conservan en
-                    el paso anterior.
+                    Una guía breve para saber qué te aporta la oferta y cómo prepararte.
                   </p>
                 </div>
                 <div className="analysis-mark" aria-hidden="true">
@@ -582,6 +649,29 @@ export default function App() {
                 <h3 id="explanation-title">¿Para quién puede ser este puesto?</h3>
                 <p>{audienceSummary(result)}</p>
               </section>
+
+              <div className="analysis-guidance">
+                <section className="guidance-panel pros-panel" aria-labelledby="pros-title">
+                  <h3 id="pros-title">Pros</h3>
+                  <ul>
+                    {offerPros(result).map((pro) => (
+                      <li key={pro}>{pro}</li>
+                    ))}
+                  </ul>
+                </section>
+
+                <section
+                  className="guidance-panel recommendations-panel"
+                  aria-labelledby="recommendations-title"
+                >
+                  <h3 id="recommendations-title">Recomendaciones</h3>
+                  <ul>
+                    {offerRecommendations(result).map((recommendation) => (
+                      <li key={recommendation}>{recommendation}</li>
+                    ))}
+                  </ul>
+                </section>
+              </div>
 
               <section className="limitations" aria-labelledby="limitations-title">
                 <h3 id="limitations-title">Limitaciones del análisis</h3>

@@ -104,12 +104,17 @@ test('reads pasted text and then shows the general offer analysis', async ({ pag
   if (testInfo.project.name === 'desktop')
     await page.screenshot({ path: 'artifacts/analyzer-requirements-desktop.png', fullPage: true })
   await page.getByRole('button', { name: 'Ir a Ver análisis' }).click()
-  await expect(page.getByRole('heading', { name: 'Análisis general de la oferta' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Data Analyst Junior' })).toBeVisible()
   await expect(
     page.getByRole('heading', { name: '¿Para quién puede ser este puesto?' }),
   ).toBeVisible()
-  await expect(page.getByText(/Este puesto puede ser una buena opción para quienes/)).toBeVisible()
-  await expect(page.getByText('Data Analyst Junior', { exact: true })).toBeVisible()
+  await expect(
+    page.getByText(/Este puesto es para quienes van por el camino de datos y analítica/),
+  ).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Pros' })).toBeVisible()
+  await expect(page.getByText(/^Tecnologías con valor práctico:/)).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Recomendaciones' })).toBeVisible()
+  await expect(page.getByText(/Para la entrevista, prepara un ejemplo concreto/)).toBeVisible()
   await expect(page.getByText('Lo que piden')).toHaveCount(0)
   await expect(page.getByText('Requisitos técnicos')).toHaveCount(0)
   await expect(page.getByText('Compatibilidad con tu perfil')).toHaveCount(0)
@@ -120,6 +125,8 @@ test('reads pasted text and then shows the general offer analysis', async ({ pag
   await expect(page.getByRole('link', { name: 'Ver oferta original' })).toHaveCount(0)
   if (testInfo.project.name === 'desktop')
     await page.screenshot({ path: 'artifacts/analyzer-result-desktop.png', fullPage: true })
+  if (testInfo.project.name === 'mobile')
+    await page.screenshot({ path: 'artifacts/analyzer-result-mobile.png', fullPage: true })
 })
 
 test('moves through the workflow buttons without reading the offer again', async ({ page }) => {

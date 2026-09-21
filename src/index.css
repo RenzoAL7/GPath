@@ -147,7 +147,7 @@ ul {
 
 .step-kicker,
 .section-label,
-.result-topline,
+.analysis-title-label,
 .detected-details dt {
   color: var(--subtle);
   font-family: 'IBM Plex Mono', monospace;
@@ -629,32 +629,32 @@ textarea:disabled {
   border-top: 1px solid var(--line-soft);
 }
 
-.result-topline {
-  overflow-wrap: anywhere;
-}
-
 .analysis-heading {
   display: flex;
   align-items: end;
   justify-content: space-between;
   gap: 28px;
-  margin-top: 18px;
+}
+
+.analysis-title-label {
+  margin-top: 15px;
 }
 
 .analysis-heading h2 {
-  max-width: 560px;
+  max-width: 780px;
   margin-top: 8px;
   color: var(--ink);
   font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(29px, 4vw, 47px);
+  font-size: clamp(36px, 5.2vw, 58px);
   font-weight: 600;
-  letter-spacing: -2.2px;
-  line-height: 1.02;
+  letter-spacing: -2.8px;
+  line-height: 1.04;
+  overflow-wrap: anywhere;
 }
 
 .analysis-lede {
   margin-top: 12px;
-  max-width: 560px;
+  max-width: 620px;
   color: var(--muted);
   font-size: 16px;
   line-height: 1.5;
@@ -692,6 +692,55 @@ textarea:disabled {
   color: var(--ink);
   font-size: 16px;
   line-height: 1.6;
+}
+
+.analysis-guidance {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.guidance-panel {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  background: var(--surface-soft);
+}
+
+.guidance-panel ul {
+  display: grid;
+  gap: 11px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guidance-panel li {
+  position: relative;
+  padding-left: 18px;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.pros-panel li::before,
+.recommendations-panel li::before {
+  position: absolute;
+  left: 0;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+}
+
+.pros-panel li::before {
+  color: var(--green);
+  content: '+';
+}
+
+.recommendations-panel li::before {
+  color: var(--accent);
+  content: '→';
 }
 
 .evidence-section ul,
@@ -892,8 +941,12 @@ footer span {
   }
 
   .analysis-heading h2 {
-    font-size: 34px;
-    letter-spacing: -1.6px;
+    font-size: 38px;
+    letter-spacing: -1.9px;
+  }
+
+  .analysis-guidance {
+    grid-template-columns: 1fr;
   }
 
   .detected-details dl {
