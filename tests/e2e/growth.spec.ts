@@ -265,5 +265,13 @@ test('narrow layout has no horizontal overflow and records a real screenshot', a
     path: `artifacts/analyzer-320-${testInfo.project.name}.png`,
     fullPage: true,
   })
+  for (const name of ['Ir a Leer oferta', 'Ir a Revisar requisitos', 'Ir a Ver análisis']) {
+    const step = page.getByRole('button', { name })
+    await expect(step).toBeVisible()
+    const bounds = await step.boundingBox()
+    expect(bounds).not.toBeNull()
+    expect(bounds?.x ?? -1).toBeGreaterThanOrEqual(0)
+    expect((bounds?.x ?? 0) + (bounds?.width ?? Number.POSITIVE_INFINITY)).toBeLessThanOrEqual(320)
+  }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= 320)).toBe(true)
 })
