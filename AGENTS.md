@@ -1,59 +1,56 @@
-# GPath — instrucciones para agentes
+# GrowPath — instrucciones para agentes
 
 ## Alcance
 
-- Este repositorio contiene la web React/TypeScript en `src/`, la API Node.js en
-  `server/` y sus pruebas en `tests/`.
-- GPath es una herramienta de una sola página para consultar tecnologías
-  mencionadas en ofertas públicas. No convertirla en una landing genérica, un
-  tutorial de Git o un panel de infraestructura.
-- `K3s-Cortex` es un repositorio separado y queda fuera del alcance. No editarlo ni
-  usarlo como destino de cambios de esta aplicación.
+- Este repositorio contiene la interfaz React/TypeScript en src/, la API Node.js en
+  server/ y sus pruebas en tests/.
+- GrowPath analiza una oferta laboral pública o una descripción pegada por la persona
+  usuaria. El flujo es: leer oferta, revisar requisitos y ver análisis.
+- No convertirlo en un agregador de vacantes, una landing genérica ni un panel de
+  infraestructura.
+- No añadir cuentas, autenticación, CV persistido, base de datos de aplicación ni
+  recomendaciones de vacantes.
 
 ## Producto y datos
 
-- Mantener seis puestos de entrada: `Intern`, `Practicante` o `Internship`.
-- El modo live debe mostrar la procedencia, fecha de consulta y enlace a la oferta
-  original. El modo demo usa ofertas ficticias y debe decirlo claramente.
-- No presentar una muestra acotada como estadísticas de todo el mercado ni inventar
-  empresas, vacantes activas, fechas o cifras de usuarios.
-- Mantener sincronizados roles, filtros, contrato de API, ubicaciones normalizadas,
-  copy y pruebas. No hacer fallback silencioso a datos globales cuando se filtra.
-- Cualquier filtro geográfico debe separar país específico, remoto LATAM y ubicación
-  desconocida.
-- No incorporar Supabase, autenticación, cuentas de usuario ni una base de datos de
-  aplicación.
+- Mantener una única fuente por análisis: URL HTTPS pública o descripción manual.
+- Mostrar requisitos, datos y recomendaciones solo cuando estén respaldados por el
+  contenido de la oferta.
+- Conservar las evidencias textuales, limitaciones, errores claros y la alternativa
+  de pegar la descripción cuando un enlace no se puede leer.
+- El cálculo orientativo debe ser determinista; un modelo opcional no puede inventar
+  requisitos, salario o evidencias ni modificar el puntaje final.
+- La capa de modelos es únicamente server-side. No versionar pesos ni exponer rutas,
+  secretos o credenciales al navegador.
 
 ## Interfaz
 
-- Usar nombres concretos como «Puesto», «Ver tecnologías» y «Ofertas consultadas».
-- Evitar lemas, invitaciones redundantes y copy genérico. Escribir en español claro,
-  con verbos concretos y tono conversacional.
-- Mantener selector, conteos, denominadores, foco visible, estados de carga, error,
-  reintento y cero resultados.
-- Reutilizar los tokens y las tipografías existentes. No añadir imágenes o
-  animaciones sin una razón específica para esta herramienta.
+- Escribir en español claro, concreto y conversacional.
+- Mantener visible el puesto analizado antes de mostrar el análisis general.
+- Permitir retroceder entre pasos sin perder la oferta ya leída.
+- Conservar estados de carga, error, reintento, foco visible y diseño usable en móvil.
+- Reutilizar los tokens y tipografías existentes. No añadir imágenes, animaciones o
+  secciones decorativas sin una utilidad clara para revisar una oferta.
 
 ## Flujo de trabajo
 
-- No modificar `main`; trabajar en una rama de trabajo.
-- Después de implementar y verificar una rama lista, preparar un commit local para
-  que el usuario pueda hacer push y abrir una PR a `main`.
-- No hacer push, merge ni abrir la PR sin aprobación explícita del usuario.
-- Preservar cambios existentes y limitar cada modificación al alcance solicitado.
-- En solicitudes de análisis o planificación, no editar archivos ni ejecutar
-  comandos que generen artefactos hasta que el usuario apruebe el plan.
+- No modificar main; usar una rama de trabajo.
+- Preservar cambios existentes y no mezclar trabajo ajeno con el solicitado.
+- No hacer push, merge ni abrir una PR sin autorización explícita.
+- Después de un cambio aprobado, ejecutar las verificaciones y revisar el diff antes
+  de proponer un commit.
 
 ## Verificación
 
 Después de implementar un cambio aprobado, ejecutar:
 
-```bash
+~~~bash
 npm test
 npm run build
 npm run test:e2e
-```
+docker compose config --quiet
+git diff --check
+~~~
 
-Probar teclado, escritorio y ancho de 320 px; inspeccionar las capturas reales.
-Revisar `git status` y el diff final. No afirmar que la web pública cambió hasta
-verificar el despliegue.
+Probar teclado, escritorio y un ancho de 320 px. Inspeccionar las capturas reales
+antes de afirmar que la interfaz se ve bien.

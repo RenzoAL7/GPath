@@ -12,8 +12,7 @@
     "build:web": "node scripts/copy-licenses.mjs && tsc -b && vite build",
     "preview": "vite preview",
     "test": "node --test tests/*.test.mjs",
-    "test:e2e": "playwright test",
-    "archive": "node --env-file-if-exists=.env.local scripts/publish-archive.mjs"
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "5.3.0",

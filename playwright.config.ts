@@ -30,8 +30,6 @@ export default defineConfig({
             HOST: '127.0.0.1',
             PORT: '8081',
             RUNTIME_ENV: 'local',
-            JOB_MODE: 'demo',
-            RELEASE_CATALOG_URL: '',
           },
           reuseExistingServer: !process.env.CI,
         },

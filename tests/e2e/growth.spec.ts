@@ -68,7 +68,7 @@ const result = {
 
 test('starts with a source step and no target-role panel', async ({ page }) => {
   await page.goto('/')
-  await expect(page).toHaveTitle('GPath — Analizador de ofertas')
+  await expect(page).toHaveTitle('GrowPath — Analizador de ofertas')
   await expect(
     page.getByRole('heading', { name: 'Entiende una oferta antes de postular' }),
   ).toBeVisible()
@@ -101,20 +101,29 @@ test('reads pasted text and then shows the general offer analysis', async ({ pag
   await expect(page.getByText('Data Analyst Junior', { exact: true })).toBeVisible()
   await expect(page.getByText('Requisitos técnicos')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Evidencias de la oferta' })).toBeVisible()
+  const reviewStep = page.getByRole('button', { name: 'Ir a Revisar requisitos' })
+  const analysisStep = page.getByRole('button', { name: 'Ir a Ver análisis' })
+  await expect(reviewStep).toHaveClass(/current/)
+  await expect(reviewStep).toHaveCSS('background-color', 'rgb(237, 240, 255)')
+  await expect(analysisStep).toHaveClass(/next/)
+  await expect(analysisStep).toHaveCSS('background-color', 'rgb(52, 88, 212)')
+  await expect(analysisStep).toHaveCSS('color', 'rgb(255, 255, 255)')
   if (testInfo.project.name === 'desktop')
     await page.screenshot({ path: 'artifacts/analyzer-requirements-desktop.png', fullPage: true })
+  if (testInfo.project.name === 'mobile')
+    await page.screenshot({ path: 'artifacts/analyzer-requirements-mobile.png', fullPage: true })
   await page.getByRole('button', { name: 'Ir a Ver análisis' }).click()
   await expect(page.getByRole('heading', { name: 'Data Analyst Junior' })).toBeVisible()
-  await expect(
-    page.getByRole('heading', { name: '¿Para quién puede ser este puesto?' }),
-  ).toBeVisible()
-  await expect(
-    page.getByText(/Este puesto es para quienes van por el camino de datos y analítica/),
-  ).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Pros' })).toBeVisible()
-  await expect(page.getByText(/^Tecnologías con valor práctico:/)).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Recomendaciones' })).toBeVisible()
-  await expect(page.getByText(/Para la entrevista, prepara un ejemplo concreto/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Ir a Ver análisis' })).toHaveClass(/current/)
+  await expect(page.getByRole('heading', { name: 'La lectura rápida' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Para quién encaja' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Qué te aporta' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Qué demostrar' })).toBeVisible()
+  await expect(page.getByText(/Elige un proyecto donde hayas usado/)).toBeVisible()
+  await expect(page.getByText('Junior', { exact: true })).toBeVisible()
+  await expect(page.getByText('Remoto', { exact: true })).toBeVisible()
+  await expect(page.getByText('Kambista SAC')).toHaveCount(0)
+  await expect(page.locator('.analysis-confirm')).toHaveCount(0)
   await expect(page.getByText('Lo que piden')).toHaveCount(0)
   await expect(page.getByText('Requisitos técnicos')).toHaveCount(0)
   await expect(page.getByText('Compatibilidad con tu perfil')).toHaveCount(0)
@@ -125,8 +134,50 @@ test('reads pasted text and then shows the general offer analysis', async ({ pag
   await expect(page.getByRole('link', { name: 'Ver oferta original' })).toHaveCount(0)
   if (testInfo.project.name === 'desktop')
     await page.screenshot({ path: 'artifacts/analyzer-result-desktop.png', fullPage: true })
-  if (testInfo.project.name === 'mobile')
+  if (testInfo.project.name === 'mobile') {
     await page.screenshot({ path: 'artifacts/analyzer-result-mobile.png', fullPage: true })
+    await page.setViewportSize({ width: 320, height: 800 })
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+      .toBeLessThanOrEqual(320)
+    await page.screenshot({ path: 'artifacts/analyzer-result-320.png', fullPage: true })
+  }
+})
+
+test('shows only detected offer facts and useful questions before applying', async ({ page }) => {
+  await page.route('**/api/analyze', async (route) => {
+    await route.fulfill({
+      json: {
+        ...result,
+        offer: { title: 'Practicante de Analítica Avanzada' },
+        requirements: {
+          ...result.requirements,
+          level: 'Practicante / Internship',
+          location: 'Perú',
+          workMode: 'Híbrido',
+          salary: null,
+        },
+      },
+    })
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'No puedo abrir el enlace' }).click()
+  await page
+    .getByLabel('Pega la descripción de la oferta')
+    .fill('Descripción de una práctica de datos con SQL y Excel.')
+  await page.getByRole('button', { name: 'Leer oferta', exact: true }).click()
+  await page.getByRole('button', { name: 'Ir a Ver análisis' }).click()
+  await expect(
+    page.getByRole('heading', { name: 'Practicante de Analítica Avanzada' }),
+  ).toBeVisible()
+  await expect(page.locator('.analysis-meta')).toContainText('Híbrido')
+  await expect(
+    page.getByText(/Confirma cuántos días son presenciales y cuál es el rango salarial/),
+  ).toBeVisible()
+  await expect(page.getByText('Lima, Perú')).toHaveCount(0)
+  await expect(page.getByText('Kambista SAC')).toHaveCount(0)
+  await page.getByText('Alcance de esta lectura').click()
+  await expect(page.getByText('El análisis depende del texto público disponible.')).toBeVisible()
 })
 
 test('moves through the workflow buttons without reading the offer again', async ({ page }) => {
