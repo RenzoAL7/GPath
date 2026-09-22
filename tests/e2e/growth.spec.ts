@@ -123,7 +123,7 @@ test('reads pasted text and then shows the general offer analysis', async ({ pag
   await expect(page.getByText('Junior', { exact: true })).toBeVisible()
   await expect(page.getByText('Remoto', { exact: true })).toBeVisible()
   await expect(page.getByText('Kambista SAC')).toHaveCount(0)
-  await expect(page.locator('.analysis-confirm')).toHaveCount(0)
+  await expect(page.getByText('Antes de postular', { exact: true })).toHaveCount(0)
   await expect(page.getByText('Lo que piden')).toHaveCount(0)
   await expect(page.getByText('Requisitos técnicos')).toHaveCount(0)
   await expect(page.getByText('Compatibilidad con tu perfil')).toHaveCount(0)
@@ -144,7 +144,7 @@ test('reads pasted text and then shows the general offer analysis', async ({ pag
   }
 })
 
-test('shows only detected offer facts and useful questions before applying', async ({ page }) => {
+test('shows only detected offer facts without an extra application banner', async ({ page }) => {
   await page.route('**/api/analyze', async (route) => {
     await route.fulfill({
       json: {
@@ -171,9 +171,7 @@ test('shows only detected offer facts and useful questions before applying', asy
     page.getByRole('heading', { name: 'Practicante de Analítica Avanzada' }),
   ).toBeVisible()
   await expect(page.locator('.analysis-meta')).toContainText('Híbrido')
-  await expect(
-    page.getByText(/Confirma cuántos días son presenciales y cuál es el rango salarial/),
-  ).toBeVisible()
+  await expect(page.getByText('Antes de postular', { exact: true })).toHaveCount(0)
   await expect(page.getByText('Lima, Perú')).toHaveCount(0)
   await expect(page.getByText('Kambista SAC')).toHaveCount(0)
   await page.getByText('Alcance de esta lectura').click()

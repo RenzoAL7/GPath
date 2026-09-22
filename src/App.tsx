@@ -287,16 +287,6 @@ function whatToDemonstrate(result: AnalysisResult) {
     : ['Lleva un proyecto relacionado con el puesto y pregunta qué tareas asumirías al empezar.']
 }
 
-function beforeApplying(result: AnalysisResult) {
-  const questions: string[] = []
-  if (/h[ií]brid/i.test(result.requirements.workMode || ''))
-    questions.push('cuántos días son presenciales')
-  if (!result.requirements.workMode) questions.push('cuál es la modalidad')
-  if (!result.requirements.location) questions.push('dónde se realiza el trabajo')
-  if (!result.requirements.salary) questions.push('cuál es el rango salarial')
-  return questions.length ? `Confirma ${formatList(questions)} antes de decidir si postulas.` : null
-}
-
 export default function App() {
   const [url, setUrl] = useState('')
   const [description, setDescription] = useState('')
@@ -706,13 +696,6 @@ export default function App() {
                   </ul>
                 </section>
               </div>
-
-              {beforeApplying(result) && (
-                <aside className="analysis-confirm" aria-label="Antes de postular">
-                  <strong>Antes de postular</strong>
-                  <span>{beforeApplying(result)}</span>
-                </aside>
-              )}
 
               {result.limitations.length > 0 && (
                 <details className="analysis-limits">
