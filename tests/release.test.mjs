@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { parseRelease, parseCatalog, mergeCatalog } from '../shared/release.mjs'
+import { parseRelease } from '../shared/release.mjs'
 
 export const release = {
   schemaVersion: 1,
@@ -16,7 +16,7 @@ test('metadata constructs trusted evidence links and strips extra fields', () =>
   assert.equal(value.runUrl, 'https://github.com/RenzoAL7/Gitpath/actions/runs/12345')
   assert.equal(value.secret, undefined)
 })
-test('invalid metadata and oversized catalogs are rejected', () => {
+test('invalid metadata is rejected', () => {
   for (const field of [
     { revision: '../secret' },
     { version: 1 },
@@ -27,19 +27,4 @@ test('invalid metadata and oversized catalogs are rejected', () => {
   ]) {
     assert.throws(() => parseRelease({ ...release, ...field }))
   }
-  assert.throws(() => parseCatalog({ schemaVersion: 1, releases: Array(51).fill(release) }))
-})
-test('catalog merging is idempotent, newest-first and bounded', () => {
-  const catalog = {
-    schemaVersion: 1,
-    releases: Array.from({ length: 50 }, (_, index) => ({
-      ...release,
-      runId: String(index),
-      builtAt: new Date(Date.parse(release.builtAt) - 1000 * (index + 1)).toISOString(),
-    })),
-  }
-  const once = mergeCatalog(catalog, release)
-  assert.equal(once.releases.length, 50)
-  assert.deepEqual(mergeCatalog(once, release), once)
-  assert.equal(once.releases[0].runId, release.runId)
 })

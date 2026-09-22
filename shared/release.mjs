@@ -1,4 +1,4 @@
-// One public contract for build metadata, the API and the optional OCI archive.
+// One public contract for build metadata and the runtime API.
 export const repository = 'RenzoAL7/Gitpath'
 export const sourceBase = `https://github.com/${repository}`
 
@@ -28,30 +28,4 @@ export function parseRelease(value) {
     sourceUrl: value.revision === 'local' ? null : `${sourceBase}/commit/${value.revision}`,
     runUrl: value.runId === null ? null : `${sourceBase}/actions/runs/${value.runId}`,
   }
-}
-
-export function parseCatalog(value) {
-  if (
-    !value ||
-    value.schemaVersion !== 1 ||
-    !Array.isArray(value.releases) ||
-    value.releases.length > 50
-  ) {
-    throw new Error('Invalid release catalog')
-  }
-  return { schemaVersion: 1, releases: value.releases.map(parseRelease) }
-}
-
-export function mergeCatalog(catalog, release) {
-  const current = parseRelease(release)
-  const previous = parseCatalog(catalog).releases
-  const releases = [
-    current,
-    ...previous.filter(
-      (item) => !(item.revision === current.revision && item.runId === current.runId),
-    ),
-  ]
-    .sort((a, b) => Date.parse(b.builtAt) - Date.parse(a.builtAt))
-    .slice(0, 50)
-  return { schemaVersion: 1, releases }
 }

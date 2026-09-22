@@ -1,9 +1,7 @@
 import { createServer } from 'node:http'
 import { randomUUID } from 'node:crypto'
 import { parseRelease } from '../shared/release.mjs'
-import { createArchive } from './archive.mjs'
 import { AnalysisInputError, createOfferAnalyzer, parseAnalysisRequest } from './analyzer.mjs'
-import { demoAnalysis, parseJobFilters, roles } from './jobs.mjs'
 
 const maxAnalysisRequestBytes = 48_000
 
@@ -63,8 +61,6 @@ function readAnalysisBody(req) {
 export function createApi({
   release: metadata,
   environment = 'local',
-  archive = createArchive(),
-  jobs = { read: async (role, filters) => demoAnalysis(role, filters) },
   analyzer = createOfferAnalyzer(),
   log = () => {},
 }) {
@@ -114,26 +110,6 @@ export function createApi({
       }
       try {
         switch (path) {
-          case '/api/jobs': {
-            const requestUrl = new URL(req.url, 'http://localhost')
-            const role = requestUrl.searchParams.get('role') || 'data-intern'
-            if (!Object.hasOwn(roles, role))
-              return send(400, { error: 'Selecciona uno de los puestos disponibles.' })
-            let filters
-            try {
-              filters = parseJobFilters(requestUrl.searchParams)
-            } catch (error) {
-              if (error instanceof RangeError) return send(400, { error: error.message })
-              throw error
-            }
-            try {
-              return send(200, await jobs.read(role, filters))
-            } catch {
-              return send(502, {
-                error: 'No se pudieron consultar las ofertas públicas. Inténtalo de nuevo.',
-              })
-            }
-          }
           case '/healthz':
           case '/readyz':
             return send(200, { status: 'ok' })
@@ -148,8 +124,6 @@ export function createApi({
               revision: release.revision,
               uptimeSeconds: Math.floor((Date.now() - startedAt) / 1000),
             })
-          case '/api/releases':
-            return send(200, await archive.read())
           default:
             return send(404, { error: 'Route not found' })
         }

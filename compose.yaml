@@ -7,7 +7,6 @@ services:
       target: api
     environment:
       RUNTIME_ENV: container
-      JOB_MODE: demo
     # Created empty when absent. Seed this named volume outside Git, then keep
     # it read-only in the API; no model downloader runs in this compose file.
     volumes:
