@@ -8,21 +8,20 @@
   <strong>Tu ruta rápida para entender una oferta antes de postular.</strong>
 </p>
 
-GrowPath lee una oferta laboral pública o una descripción pegada manualmente y la
-convierte en una guía clara: requisitos técnicos, datos detectados, evidencias,
-una lectura rápida y pasos concretos para prepararte. No requiere cuenta, CV ni una base de
-datos.
+GrowPath organiza una oferta laboral en tres pasos: leerla, revisar los requisitos y
+las evidencias detectadas, y consultar un análisis general con ideas para prepararte.
+Puedes pegar un enlace HTTPS público o la descripción de la oferta. No necesitas una
+cuenta ni subir tu CV.
 
-## Qué resuelve
+## Qué encontrarás
 
-- Acepta una sola fuente por análisis: un enlace HTTPS público o el texto de la oferta.
-- Extrae tecnologías, requisitos deseables, nivel, ubicación, modalidad y salario solo
-  cuando están presentes en el contenido.
-- Muestra evidencias textuales para que puedas comprobar de dónde salió cada hallazgo.
-- Te permite volver entre **Revisar requisitos** y **Ver análisis** sin perder la
-  información ya leída.
-- Genera una orientación breve y concreta: para quién puede ser el puesto, qué puede
-  aportar y qué conviene demostrar en una entrevista.
+- Un enlace HTTPS público o una descripción pegada manualmente por cada análisis.
+- Requisitos técnicos y deseables, además del nivel, la ubicación, la modalidad y el
+  salario cuando aparecen en la oferta.
+- Fragmentos de la oferta que respaldan los hallazgos para que puedas revisarlos.
+- Una lectura rápida, una explicación de para quién puede encajar el puesto, qué puede
+  aportarte y qué podrías demostrar.
+- Navegación entre los pasos para volver a revisar la oferta sin perder lo leído.
 
 ## Inicio rápido
 
@@ -43,15 +42,17 @@ docker compose up --build
 
 La versión de contenedores queda disponible en http://127.0.0.1:8080.
 
-## Cómo funciona
+## Flujo de uso
 
-1. Pegas el enlace público de una oferta o su descripción.
-2. GrowPath valida y lee una única fuente.
-3. Revisas los requisitos y las evidencias detectadas.
-4. Abres el análisis para ver una guía de preparación basada en esa oferta.
+1. **Lee una oferta.** Pega el enlace público. Si no se puede abrir, selecciona
+   **No puedo abrir el enlace** y pega su descripción.
+2. **Revisa lo detectado.** Comprueba el puesto, los requisitos, los datos disponibles y
+   las evidencias textuales de la oferta.
+3. **Consulta el análisis.** Lee el resumen general y las ideas para prepararte usando
+   únicamente la información disponible de esa oferta.
 
-Si una página requiere iniciar sesión, bloquea la lectura o no entrega contenido
-público, puedes pegar la descripción manualmente.
+El lector necesita contenido público. Si la página requiere iniciar sesión, bloquea la
+lectura o no entrega texto, puedes pegar la descripción manualmente.
 
 ## Seguridad y privacidad
 
@@ -123,16 +124,19 @@ tests/
   e2e/                    Flujos reales en escritorio y móvil
 ```
 
-La web usa React, TypeScript y Vite. La API usa Node.js y se empaqueta por separado
-con nginx en Docker. El flujo de CI valida pruebas, build, navegador y contenedores
-antes de publicar imágenes.
+La web usa React, TypeScript y Vite, y se sirve con Nginx. La API se ejecuta en un
+contenedor Node.js. En cada pull request, CI valida las pruebas, la compilación, los
+flujos de navegador y los contenedores. Al integrar cambios en `main`, publica las
+imágenes web y API multi-arquitectura en GHCR y propone por separado un pull request de
+promoción GitOps para revisión.
 
 ## Modelos opcionales
 
-La aplicación funciona sin descargar modelos. En ese caso emplea extracción reglada,
-similitud de respaldo y explicaciones basadas en datos verificables.
+La aplicación funciona sin modelos: no descarga pesos ni inicia un runtime de
+inferencia. Usa extracción reglada y explicaciones basadas en datos verificables.
 
-Si existe un runtime local compatible, puedes configurarlo solo del lado servidor:
+Un despliegue puede conectar un runtime compatible ya disponible y configurar las
+rutas de los modelos solo del lado servidor:
 
 ```text
 MODEL_SOURCE=local
@@ -141,9 +145,10 @@ QWEN_MODEL_PATH=/models/qwen3/Qwen3-1.7B-Q4_K_M.gguf
 MODEL_RUNTIME_URL=http://model-runtime:8090
 ```
 
-Los pesos no se versionan en Git ni se incluyen en las imágenes. Incluso con el
-runtime opcional, los requisitos, salario y evidencias deben estar respaldados por el
-texto de la oferta; el modelo no decide el puntaje final.
+Los pesos no se versionan en Git ni se incluyen en las imágenes. La configuración no
+los descarga ni inicia el servicio de inferencia. Incluso con un runtime opcional, los
+requisitos, el salario y las evidencias deben estar respaldados por el texto de la
+oferta; el modelo no decide el puntaje final.
 
 ## Calidad
 
