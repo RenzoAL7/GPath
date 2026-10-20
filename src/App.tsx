@@ -332,11 +332,17 @@ export default function App() {
     request.current?.abort()
     const controller = new AbortController()
     request.current = controller
+    const loadingStartedAt = performance.now()
+    const minimumLoadingMs = 900
     setLastRequest(input)
     setLastPhase(nextPhase)
     setLoading(true)
     setError('')
     const timeout = window.setTimeout(() => controller.abort(), 40_000)
+    let outcome:
+      | { type: 'success'; payload: ReturnType<typeof parseResult> }
+      | { type: 'error'; message: string }
+      | null = null
     try {
       const response = await fetch('/api/analyze', {
         method: 'POST',
@@ -353,26 +359,35 @@ export default function App() {
         )
       }
       const payload = parseResult(await response.json())
-      if (request.current === controller) {
-        if (nextPhase === 'offer') {
-          setInspection(payload)
-          setResult(null)
-          setPhase('offer')
-        } else {
-          setResult(payload)
-          setPhase('result')
-        }
-      }
+      outcome = { type: 'success', payload }
     } catch (reason) {
-      if (request.current === controller)
-        setError(
+      outcome = {
+        type: 'error',
+        message:
           reason instanceof Error && reason.message
             ? reason.message
             : 'No pudimos analizar la oferta. Comprueba el enlace o pega la descripción y vuelve a intentarlo.',
-        )
+      }
     } finally {
       window.clearTimeout(timeout)
-      if (request.current === controller) setLoading(false)
+      const remainingLoadingMs = minimumLoadingMs - (performance.now() - loadingStartedAt)
+      if (request.current === controller && remainingLoadingMs > 0)
+        await new Promise((resolve) => window.setTimeout(resolve, remainingLoadingMs))
+      if (request.current === controller) {
+        if (outcome?.type === 'success') {
+          if (nextPhase === 'offer') {
+            setInspection(outcome.payload)
+            setResult(null)
+            setPhase('offer')
+          } else {
+            setResult(outcome.payload)
+            setPhase('result')
+          }
+        } else if (outcome?.type === 'error') {
+          setError(outcome.message)
+        }
+        setLoading(false)
+      }
     }
   }
 
@@ -446,7 +461,7 @@ export default function App() {
         </div>
       </header>
 
-      <main>
+      <main className={phase === 'source' ? 'source-screen' : 'review-screen'}>
         <section className="hero" aria-labelledby="analyzer-title">
           <div className="hero-copy">
             <h1 id="analyzer-title">Entiende una oferta antes de postular</h1>
