@@ -63,6 +63,51 @@ test('keeps public offer metadata when the page shell hides the rendered job', (
   assert.equal(facts.level, 'Practicante / Internship')
 })
 
+test('limits LinkedIn search-result analysis to the selected job description', () => {
+  const url = 'https://www.linkedin.com/jobs/view/4479750381'
+  const html = `
+    <code id="decoratedJobPostingId"><!--"4479750381"--></code>
+    <h1 class="top-card-layout__title">Practicante de Data Quality</h1>
+    <h4 class="top-card-layout__second-subline"><div>Banco Falabella Perú <span class="topcard__flavor">Lima, Peru</span></div></h4>
+    <section class="core-section-container description">
+      <div class="core-section-container__content">
+        <div class="description__text description__text--rich">
+          <section><div class="show-more-less-html__markup">
+            <strong>Descripción Empresa<br><br></strong>Con nosotros, Azure y $75,000 no describen esta vacante.
+            <strong>Misión Del Cargo<br><br></strong>Apoyar la calidad de datos mediante controles en BigQuery, SQL y GCP.
+            <strong>Requisitos<br><br></strong>Manejo de base de datos con SQL Server y BigQuery.
+          </div></section>
+        </div>
+      </div>
+    </section>
+    <section class="similar-jobs">Senior Data Quality Analyst remoto, Azure, $75,000</section>
+  `
+
+  const cleaned = cleanOfferText(html, url)
+  const facts = extractOfferFacts(cleaned)
+
+  assert.match(cleaned, /BigQuery/)
+  assert.match(cleaned, /Lima, Peru/)
+  assert.doesNotMatch(cleaned, /nosotros|Azure|75,000|Senior Data Quality Analyst/i)
+  assert.deepEqual(facts.technical, ['SQL', 'BigQuery', 'GCP'])
+  assert.equal(facts.location, 'Perú')
+  assert.equal(facts.salary, null)
+  assert.equal(facts.workMode, null)
+  assert.equal(
+    facts.evidence.some((item) => item.label === 'Puesto relacionado'),
+    false,
+  )
+})
+
+test('does not analyze a LinkedIn page when its posting ID differs from the requested job', () => {
+  const cleaned = cleanOfferText(
+    '<code id="decoratedJobPostingId"><!--"123456"--></code><div class="description__text">SQL y $75,000.</div>',
+    'https://www.linkedin.com/jobs/view/4479750381',
+  )
+
+  assert.equal(cleaned, '')
+})
+
 test('returns a source-backed offer title for headings and pasted descriptions', () => {
   const html = `
     <meta property="og:title" content="Data Engineer Intern · Example" />
@@ -92,6 +137,20 @@ test('keeps a hybrid modality when the schedule also mentions remote days', () =
   assert.equal(facts.location, 'Perú')
   assert.equal(facts.workMode, 'Híbrido')
   assert.ok(facts.evidence.some((item) => item.label === 'Ubicación y modalidad'))
+})
+
+test('does not mistake an in-person selection stage for the job work mode', () => {
+  const facts = extractOfferFacts(
+    'Practicante de Data Quality. Lima, Perú. El proceso de selección termina con una etapa presencial.',
+  )
+
+  assert.equal(facts.location, 'Perú')
+  assert.equal(facts.workMode, null)
+  assert.ok(facts.evidence.some((item) => item.label === 'Ubicación'))
+  assert.equal(
+    facts.evidence.some((item) => item.label === 'Ubicación y modalidad'),
+    false,
+  )
 })
 
 function factor(result, id) {

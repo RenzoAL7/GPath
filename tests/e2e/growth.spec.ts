@@ -68,6 +68,9 @@ const result = {
 
 test('starts with a source step and no target-role panel', async ({ page }) => {
   await page.goto('/')
+  await page.keyboard.press('Tab')
+  await expect(page.locator('.brand')).toBeFocused()
+  await expect(page.locator('.brand')).toHaveCSS('outline-style', 'solid')
   await expect(page).toHaveTitle('GrowPath — Analizador de ofertas')
   await expect(
     page.getByRole('heading', { name: 'Entiende una oferta antes de postular' }),
@@ -104,9 +107,9 @@ test('reads pasted text and then shows the general offer analysis', async ({ pag
   const reviewStep = page.getByRole('button', { name: 'Ir a Revisar requisitos' })
   const analysisStep = page.getByRole('button', { name: 'Ir a Ver análisis' })
   await expect(reviewStep).toHaveClass(/current/)
-  await expect(reviewStep).toHaveCSS('background-color', 'rgb(237, 240, 255)')
+  await expect(reviewStep).toHaveCSS('background-color', 'rgb(248, 250, 243)')
   await expect(analysisStep).toHaveClass(/next/)
-  await expect(analysisStep).toHaveCSS('background-color', 'rgb(52, 88, 212)')
+  await expect(analysisStep).toHaveCSS('background-color', 'rgb(23, 62, 52)')
   await expect(analysisStep).toHaveCSS('color', 'rgb(255, 255, 255)')
   if (testInfo.project.name === 'desktop')
     await page.screenshot({ path: 'artifacts/analyzer-requirements-desktop.png', fullPage: true })
@@ -142,6 +145,27 @@ test('reads pasted text and then shows the general offer analysis', async ({ pag
       .toBeLessThanOrEqual(320)
     await page.screenshot({ path: 'artifacts/analyzer-result-320.png', fullPage: true })
   }
+})
+
+test('keeps the loading state visible briefly when the analysis responds immediately', async ({
+  page,
+}) => {
+  await page.route('**/api/analyze', async (route) => {
+    await route.fulfill({ json: result })
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'No puedo abrir el enlace' }).click()
+  await page
+    .getByLabel('Pega la descripción de la oferta')
+    .fill('Buscamos Data Analyst Junior con Python y SQL para trabajo remoto en Perú.')
+
+  const startedAt = Date.now()
+  await page.getByRole('button', { name: 'Leer oferta', exact: true }).click()
+  await expect(page.getByRole('status')).toContainText('Leyendo y organizando la oferta.')
+  await page.waitForTimeout(250)
+  await expect(page.getByRole('status')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Esto es lo que encontramos' })).toBeVisible()
+  expect(Date.now() - startedAt).toBeGreaterThanOrEqual(850)
 })
 
 test('shows only detected offer facts without an extra application banner', async ({ page }) => {

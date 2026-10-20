@@ -68,6 +68,7 @@ const skillCatalog = [
   ['Terraform', /\bterraform\b/i, ['terraform']],
   ['Linux', /\blinux\b/i, ['linux']],
   ['AWS', /\b(?:aws|amazon web services)\b/i, ['aws', 'amazon web services']],
+  ['BigQuery', /\bbig\s*query\b/i, ['bigquery', 'big query']],
   ['GCP', /\b(?:gcp|google cloud)\b/i, ['gcp', 'google cloud']],
   ['Azure', /\bazure\b/i, ['azure']],
   ['Airflow', /\bairflow\b/i, ['airflow']],
@@ -291,27 +292,92 @@ function titleFromText(value) {
   return null
 }
 
+function linkedinJobId(value) {
+  if (typeof value !== 'string') return null
+  try {
+    const url = new URL(value)
+    if (!/(^|\.)linkedin\.com$/i.test(url.hostname)) return null
+    return url.pathname.match(/^\/jobs\/view\/(?:[^/]+-)?(\d+)(?:\/|$)/i)?.[1] || null
+  } catch {
+    return null
+  }
+}
+
+function elementContentByClass(value, tagName, className) {
+  const openTag = new RegExp(`<${tagName}\\b[^>]*>`, 'gi')
+  let opening
+  while ((opening = openTag.exec(value))) {
+    const classAttribute = opening[0].match(/\bclass\s*=\s*(["'])(.*?)\1/i)?.[2] || ''
+    if (!classAttribute.split(/\s+/).includes(className)) continue
+
+    const tags = new RegExp(`<\\/?${tagName}\\b[^>]*>`, 'gi')
+    tags.lastIndex = openTag.lastIndex
+    let depth = 1
+    let token
+    while ((token = tags.exec(value))) {
+      if (/^<\//.test(token[0])) depth -= 1
+      else if (!/\/\s*>$/.test(token[0])) depth += 1
+      if (depth === 0) return value.slice(openTag.lastIndex, token.index)
+    }
+    return null
+  }
+  return null
+}
+
+function visibleHtmlText(value) {
+  return decodeHtml(
+    value
+      .replace(
+        /<\s*(?:script|style|noscript|svg|canvas|iframe)[\s\S]*?<\s*\/\s*(?:script|style|noscript|svg|canvas|iframe)\s*>/gi,
+        ' ',
+      )
+      .replace(/<\s*br\s*\/?>/gi, '\n')
+      .replace(/<\s*\/(?:p|div|li|h[1-6]|section|article|tr)\s*>/gi, '\n')
+      .replace(/<[^>]*>/g, ' '),
+  )
+    .replace(/\r/g, '')
+    .replace(/[ \t\f\v]+/g, ' ')
+    .replace(/\n\s*\n+/g, '\n')
+    .trim()
+}
+
+function linkedinOfferText(value, expectedId) {
+  const postingId = value.match(
+    /<code\b[^>]*\bid\s*=\s*(["'])decoratedJobPostingId\1[^>]*>\s*<!--\s*["']?(\d+)/i,
+  )?.[2]
+  if (postingId !== expectedId) return ''
+
+  const titleHtml = value.match(
+    /<h1\b[^>]*class\s*=\s*(["'])[^"']*\btop-card-layout__title\b[^"']*\1[^>]*>([\s\S]*?)<\/h1>/i,
+  )?.[2]
+  const headerHtml = elementContentByClass(value, 'h4', 'top-card-layout__second-subline')
+  const descriptionHtml = elementContentByClass(value, 'div', 'description__text')
+  if (!descriptionHtml) return ''
+
+  let description = visibleHtmlText(descriptionHtml)
+  const jobSection = description.search(
+    /\b(?:misi[oó]n(?:\s+del)?\s+cargo|descripci[oó]n(?:\s+del)?\s+(?:cargo|puesto|empleo)|job description|about the job|responsibilities)\b/i,
+  )
+  if (jobSection >= 0) description = description.slice(jobSection)
+  else if (/^\s*(?:descripci[oó]n\s+empresa|about the company)\b/i.test(description)) return ''
+
+  const title = titleHtml ? visibleHtmlText(titleHtml) : ''
+  const header = headerHtml ? visibleHtmlText(headerHtml) : ''
+  return [title, header, description].filter(Boolean).join('\n')
+}
+
 /** Returns a visible title only when it appears in the source offer text. */
 export function extractOfferTitle(sourceText, cleanedText = cleanOfferText(sourceText)) {
   return metadataOfferTitle(sourceText) || titleFromText(cleanedText)
 }
 
 /** Removes markup and scripts without executing any content from the offer. */
-export function cleanOfferText(value) {
+export function cleanOfferText(value, sourceUrl) {
   if (typeof value !== 'string') return ''
+  const selectedJobId = linkedinJobId(sourceUrl)
+  if (selectedJobId) return linkedinOfferText(value, selectedJobId).slice(0, maxDescriptionLength)
   const metadata = metadataOfferText(value)
-  const visibleText = value
-    .replace(
-      /<\s*(?:script|style|noscript|svg|canvas|iframe)[\s\S]*?<\s*\/\s*(?:script|style|noscript|svg|canvas|iframe)\s*>/gi,
-      ' ',
-    )
-    .replace(/<\s*br\s*\/?>/gi, '\n')
-    .replace(/<\s*\/\s*(?:p|div|li|h[1-6]|section|article|tr)\s*>/gi, '\n')
-    .replace(/<[^>]*>/g, ' ')
-  return decodeHtml([visibleText, metadata].filter(Boolean).join('\n'))
-    .replace(/\r/g, '')
-    .replace(/[ \t\f\v]+/g, ' ')
-    .replace(/\n\s*\n+/g, '\n')
+  return visibleHtmlText([value, metadata].filter(Boolean).join('\n'))
     .trim()
     .slice(0, maxDescriptionLength)
 }
@@ -372,8 +438,12 @@ function salaryFromText(value) {
 }
 
 function roleEvidence(lines, targetRole) {
+  if (targetRole === 'other') return null
   const label = roleProfiles[targetRole].label
-  return firstEvidence(lines, new RegExp(label.replace(/\s*\/\s*/g, '|'), 'i'))
+  const alternatives = label
+    .split(/\s*\/\s*/)
+    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  return firstEvidence(lines, new RegExp(`\\b(?:${alternatives.join('|')})\\b`, 'i'))
 }
 
 /**
@@ -398,10 +468,10 @@ export function extractOfferFacts(cleanedText, targetRole = 'other') {
     lines,
     /\b(?:perú|peru|lima|latam|latin america|américa latina|america latina|remoto|remote|h[ií]brid[oa]|hybrid|presencial|on[- ]?site)\b/i,
   )
-  const workModeEvidence =
-    firstEvidence(lines, /\b(?:h[ií]brid[oa]|hybrid)\b/i) ||
-    firstEvidence(lines, /\b(?:remoto|remote|work from home|teletrabajo)\b/i) ||
-    firstEvidence(lines, /\b(?:presencial|on[- ]?site|in office)\b/i)
+  const workModeEvidence = firstEvidence(
+    lines,
+    /\b(?:modalidad(?:\s+de\s+trabajo)?|work mode|workplace type)\s*[:–-]?\s*(?:h[ií]brid[oa]|hybrid|remot[oa]?|remote|work from home|teletrabajo|presencial|on[- ]?site|in office)\b|\b(?:trabajo|empleo|puesto|posici[oó]n|vacante|role|position|job)\b[^.!?]{0,45}\b(?:h[ií]brid[oa]|hybrid|remot[oa]?|remote|work from home|teletrabajo|presencial|on[- ]?site|in office)\b|\bwork from home\b/i,
+  )
   const salaryEvidence = firstEvidence(
     lines,
     /(?:s\/\.?\s?|usd\s?|us\$\s?|\$\s?)(?:\d{1,3}(?:[,.]\d{3})+|\d+)/i,
@@ -416,8 +486,11 @@ export function extractOfferFacts(cleanedText, targetRole = 'other') {
   const salary = salaryEvidence ? salaryFromText(salaryEvidence) : null
   if (levelEvidence && level)
     evidence.push({ label: 'Nivel detectado', text: shorten(levelEvidence) })
-  if (locationAndWorkModeEvidence && (location || workMode))
-    evidence.push({ label: 'Ubicación y modalidad', text: shorten(locationAndWorkModeEvidence) })
+  if (locationAndWorkModeEvidence && (location || workMode)) {
+    const label =
+      location && workMode ? 'Ubicación y modalidad' : location ? 'Ubicación' : 'Modalidad'
+    evidence.push({ label, text: shorten(locationAndWorkModeEvidence) })
+  }
   if (salaryEvidence && salary) evidence.push({ label: 'Salario', text: shorten(salaryEvidence) })
   const titleEvidence = roleEvidence(lines, targetRole)
   if (titleEvidence) evidence.push({ label: 'Puesto relacionado', text: shorten(titleEvidence) })
@@ -727,7 +800,8 @@ export function createOfferAnalyzer({
       const source = parsed.url
         ? await readOffer(parsed.url)
         : { text: parsed.description, originalUrl: null }
-      const cleaned = cleanOfferText(source?.text)
+      const sourceUrl = source?.originalUrl || parsed.url
+      const cleaned = cleanOfferText(source?.text, sourceUrl)
       if (cleaned.length < 40)
         throw new AnalysisInputError(
           'No pudimos encontrar suficiente texto en la oferta. Pega la descripción manualmente.',

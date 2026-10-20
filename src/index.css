@@ -6,26 +6,28 @@
 @import '@fontsource/ibm-plex-mono/latin-400.css';
 
 :root {
-  color: #1d1d1f;
-  background: #f5f5f7;
+  color: #17392f;
+  background: #e8efed;
   color-scheme: light;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'IBM Plex Sans', sans-serif;
   font-synthesis: none;
-  --ink: #1d1d1f;
-  --muted: #6e6e73;
-  --subtle: #86868b;
-  --canvas: #f5f5f7;
-  --surface: #ffffff;
-  --surface-soft: #fbfbfd;
-  --accent: #3458d4;
-  --accent-dark: #2645b0;
-  --accent-soft: #edf0ff;
-  --green: #218739;
-  --green-soft: #eef8f0;
-  --line: #d2d2d7;
-  --line-soft: #e7e7eb;
+  --ink: #17392f;
+  --muted: #61736b;
+  --subtle: #718078;
+  --canvas: #e8efed;
+  --surface: #f8faf3;
+  --surface-soft: #edf2e6;
+  --accent: #173e34;
+  --accent-dark: #0f3129;
+  --accent-soft: #edf3d9;
+  --green: #446c4c;
+  --green-soft: #eaf1df;
+  --line: #cbd8d2;
+  --line-soft: #d9dfda;
   --danger: #b42318;
   --danger-soft: #fff1ee;
+  --signal: #d3f15b;
+  --radius: 10px;
 }
 
 * {
@@ -843,6 +845,539 @@ footer span {
   margin-left: 8px;
   color: var(--muted);
   font-weight: 400;
+}
+
+/* Ficha: cada etapa se lee como un expediente breve y respaldado. */
+body {
+  background: var(--canvas);
+}
+
+:focus-visible {
+  outline-color: #b3d03f;
+}
+
+.topbar {
+  max-width: 1320px;
+  border-color: var(--line);
+}
+
+.brand-name {
+  color: var(--accent);
+}
+
+.hero {
+  max-width: none;
+}
+
+.hero h1 {
+  color: var(--ink);
+}
+
+.workflow-step {
+  border-color: transparent;
+  border-radius: 6px;
+}
+
+.workflow-step.current,
+.workflow-step.ready {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.workflow-step.next {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: none;
+  color: #fff;
+}
+
+.workflow-step.next .step-number,
+.workflow-step.current .step-number {
+  border-radius: 4px;
+}
+
+.workflow-step.next .step-number {
+  color: var(--signal);
+}
+
+.workflow-step.done {
+  color: var(--accent);
+}
+
+.workflow-step:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.workflow-step.next:hover:not(:disabled) {
+  border-color: var(--accent-dark);
+  background: var(--accent-dark);
+}
+
+.step-number {
+  border-radius: 4px;
+  background: var(--canvas);
+}
+
+.workflow-card {
+  max-width: 1120px;
+  min-height: 0;
+  border: 1px solid var(--line);
+  border-top: 4px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: none;
+}
+
+.workflow-card::before {
+  display: none;
+}
+
+.step-view {
+  max-width: 920px;
+}
+
+.step-view h2,
+.analysis-heading h2 {
+  color: var(--ink);
+}
+
+.input,
+input,
+textarea {
+  border-radius: 7px;
+  background: var(--surface);
+}
+
+input:focus,
+textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(211, 241, 91, 0.42);
+}
+
+.manual-source-toggle,
+.original-link,
+.analysis-limits summary {
+  color: var(--accent);
+}
+
+.primary-action {
+  border-color: var(--accent);
+  border-radius: 7px;
+  background: var(--accent);
+  color: var(--signal);
+}
+
+.primary-action:hover:not(:disabled) {
+  border-color: var(--accent-dark);
+  background: var(--accent-dark);
+}
+
+.secondary-action,
+.retry-button {
+  border-radius: 7px;
+}
+
+.source-screen {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(390px, 1.08fr);
+  align-items: center;
+  column-gap: clamp(32px, 6vw, 86px);
+  max-width: 1320px;
+  margin: 0 auto;
+}
+
+.review-screen .hero {
+  display: none;
+}
+
+.source-screen .hero {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  margin: 0;
+  padding: 26px 0 30px;
+  text-align: left;
+}
+
+.source-screen .hero::before {
+  display: block;
+  width: 70px;
+  height: 4px;
+  margin-bottom: 23px;
+  background: var(--signal);
+  content: '';
+}
+
+.source-screen .hero h1 {
+  max-width: 550px;
+  font-size: clamp(44px, 5.6vw, 70px);
+  letter-spacing: -0.072em;
+  line-height: 0.98;
+}
+
+.source-screen .hero-copy > p {
+  max-width: 440px;
+  margin-top: 22px;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.source-screen .workflow-nav {
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+  max-width: 760px;
+  margin: 28px auto 0;
+}
+
+.source-screen .workflow-nav ol {
+  gap: 8px;
+}
+
+.source-screen .workflow-step {
+  justify-content: flex-start;
+  min-height: 46px;
+  padding: 0 7px;
+  font-size: 13px;
+}
+
+.source-screen .workflow-step.current {
+  border-color: transparent;
+  background: transparent;
+}
+
+.source-screen .workflow-step .step-number {
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+}
+
+.source-screen .workflow-card {
+  grid-column: 2;
+  grid-row: 2;
+  width: 100%;
+  margin: 16px auto 0;
+}
+
+.source-screen .step-view {
+  max-width: none;
+  padding: clamp(24px, 3.3vw, 38px);
+}
+
+.source-screen .step-view h2 {
+  margin-top: 9px;
+  font-size: 28px;
+  letter-spacing: -0.05em;
+}
+
+.source-screen .analyze-form {
+  margin-top: 25px;
+}
+
+.source-screen .primary-action {
+  width: fit-content;
+}
+
+.step-view[aria-labelledby='offer-title'] {
+  display: grid;
+  grid-template-columns: minmax(0, 1.06fr) minmax(300px, 0.94fr);
+  max-width: none;
+  padding: 42px clamp(24px, 4vw, 48px) 48px;
+}
+
+.step-view[aria-labelledby='offer-title'] > .step-kicker,
+.step-view[aria-labelledby='offer-title'] > .step-heading-row,
+.step-view[aria-labelledby='offer-title'] > .offer-identity {
+  grid-column: 1 / -1;
+}
+
+.step-heading-row {
+  align-items: end;
+}
+
+.read-status {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface-soft);
+  color: var(--accent);
+}
+
+.offer-identity {
+  margin-top: 24px;
+  padding: 20px 24px 22px;
+  border: 0;
+  border-radius: 0;
+  background: var(--accent);
+}
+
+.offer-identity .section-label {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.offer-identity strong {
+  margin-top: 5px;
+  color: #fff;
+  font-size: clamp(22px, 2.5vw, 29px);
+}
+
+.offer-summary {
+  grid-column: 1;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin-top: 0;
+  padding: 27px 25px 12px 0;
+}
+
+.offer-summary h3,
+.analysis-result h3 {
+  letter-spacing: -0.035em;
+}
+
+.summary-subheading {
+  margin-top: 25px;
+  padding-top: 23px;
+  border-top: 1px solid var(--line);
+}
+
+.result-tags li {
+  border-color: var(--line);
+  border-radius: 5px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.detected-details {
+  padding: 0;
+  border: 0;
+}
+
+.detected-details dl > div {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.inspection-evidence {
+  grid-column: 2;
+  margin: 0;
+  padding: 27px 24px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  background: #edf2e6;
+}
+
+.inspection-evidence ul {
+  gap: 11px;
+}
+
+.inspection-evidence li {
+  position: relative;
+  padding: 15px 15px 15px 18px;
+  border: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+}
+
+.inspection-evidence li::before {
+  position: absolute;
+  top: 11px;
+  bottom: 11px;
+  left: -1px;
+  width: 4px;
+  background: var(--signal);
+  content: '';
+}
+
+.inspection-evidence li > strong {
+  color: var(--accent);
+}
+
+.progress-panel {
+  border-color: var(--line);
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.progress-panel li.current,
+.progress-panel li span {
+  color: var(--accent);
+}
+
+.analysis-heading {
+  border-bottom: 1px solid var(--line);
+}
+
+.analysis-meta span {
+  border-color: var(--line);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.analysis-takeaway {
+  margin: 20px 0 0;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--signal);
+  border-radius: 4px;
+  background: var(--surface);
+}
+
+.analysis-result .analysis-takeaway h3 {
+  color: var(--accent);
+}
+
+.analysis-guidance {
+  gap: 1px;
+  margin-top: 20px;
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+
+.guidance-panel,
+.guidance-panel + .guidance-panel {
+  padding: 28px 24px;
+  border: 0;
+  background: var(--surface);
+}
+
+.analysis-result .guidance-panel li::before {
+  color: var(--accent);
+}
+
+.analysis-limits summary {
+  color: var(--accent);
+}
+
+.evidence-section li > strong {
+  color: var(--accent);
+}
+
+footer {
+  max-width: 1320px;
+  border-color: var(--line);
+}
+
+@media (max-width: 960px) {
+  .source-screen {
+    display: block;
+    max-width: 760px;
+  }
+
+  .source-screen .hero {
+    padding: 40px 20px 28px;
+    text-align: left;
+  }
+
+  .source-screen .workflow-nav {
+    max-width: none;
+    margin-top: 0;
+  }
+
+  .source-screen .workflow-card {
+    margin-top: 12px;
+  }
+
+  .step-view[aria-labelledby='offer-title'] {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.9fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .review-screen .workflow-card {
+    max-width: 100%;
+  }
+
+  .step-view[aria-labelledby='offer-title'] {
+    grid-template-columns: 1fr;
+    padding: 36px 28px 40px;
+  }
+
+  .offer-summary,
+  .inspection-evidence {
+    grid-column: 1;
+  }
+
+  .offer-summary {
+    padding: 25px 0;
+  }
+
+  .inspection-evidence {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .analysis-guidance {
+    gap: 1px;
+  }
+
+  .guidance-panel,
+  .guidance-panel + .guidance-panel {
+    padding: 24px 20px;
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (max-width: 560px) {
+  .source-screen .hero {
+    padding: 40px 6px 26px;
+    text-align: center;
+  }
+
+  .source-screen .hero::before {
+    margin-right: auto;
+    margin-left: auto;
+  }
+
+  .source-screen .hero h1 {
+    font-size: 39px;
+    letter-spacing: -0.055em;
+  }
+
+  .source-screen .hero-copy > p {
+    margin-right: auto;
+    margin-left: auto;
+    font-size: 16px;
+  }
+
+  .source-screen .workflow-nav ol {
+    gap: 4px;
+  }
+
+  .source-screen .workflow-step {
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    min-height: 70px;
+    padding: 6px 3px;
+    font-size: 11px;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .step-view[aria-labelledby='offer-title'] {
+    padding: 30px 20px 34px;
+  }
+
+  .step-heading-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .offer-identity {
+    padding: 17px 18px 19px;
+  }
+
+  .inspection-evidence {
+    padding: 23px 17px;
+  }
+
+  .detected-details dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
 }
 
 @media (max-width: 760px) {
