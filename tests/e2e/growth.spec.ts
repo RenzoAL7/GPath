@@ -78,6 +78,9 @@ test('starts with a source step and no target-role panel', async ({ page }) => {
     page.locator('header').getByText('Analizador de ofertas', { exact: true }),
   ).toBeVisible()
   await expect(page.getByText('Tu ruta rápida para entender una oferta.')).toHaveCount(0)
+  await expect(
+    page.getByText('Cada requisito aparecerá junto a la cita que lo respalda.'),
+  ).toBeVisible()
   await expect(page.getByAltText('Ícono de GPath')).toHaveCount(0)
   await expect(page.getByText('¿Qué puesto buscas?')).toHaveCount(0)
   await expect(page.getByText('Tu perfil')).toHaveCount(0)
