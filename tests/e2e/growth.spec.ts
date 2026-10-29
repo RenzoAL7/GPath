@@ -72,9 +72,7 @@ test('starts with a source step and no target-role panel', async ({ page }) => {
   await expect(page.locator('.brand')).toBeFocused()
   await expect(page.locator('.brand')).toHaveCSS('outline-style', 'solid')
   await expect(page).toHaveTitle('GrowPath — Analizador de ofertas')
-  await expect(
-    page.getByRole('heading', { name: 'Pega el enlace de una oferta.' }),
-  ).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Pega el enlace de una oferta.' })).toBeVisible()
   await expect(page.locator('header').getByText('GrowPath', { exact: true })).toBeVisible()
   await expect(
     page.locator('header').getByText('Analizador de ofertas', { exact: true }),
@@ -90,6 +88,7 @@ test('starts with a source step and no target-role panel', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Leer oferta', exact: true })).toBeDisabled()
   await expect(page.getByRole('button', { name: 'Ir a Revisar requisitos' })).toBeDisabled()
   await expect(page.getByRole('button', { name: 'Ir a Ver análisis' })).toBeDisabled()
+  await expect(page.getByText('Pega el enlace de una oferta')).toBeVisible()
   await expect(page.getByLabel('Descripción de la oferta')).toHaveCount(0)
 })
 
@@ -273,7 +272,7 @@ test('turns a LinkedIn search link with a selected job into an individual offer 
     .fill('https://www.linkedin.com/jobs/search-results/?currentJobId=4463490846')
   await expect(page.getByText(/Ese enlace es una búsqueda de LinkedIn/)).toHaveCount(0)
   await page.getByRole('button', { name: 'Leer oferta', exact: true }).click()
-  await expect(page.getByText('Data Analyst Junior')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Data Analyst Junior' })).toBeVisible()
 })
 
 test('explains when a LinkedIn URL is only a search without a selected offer', async ({ page }) => {
