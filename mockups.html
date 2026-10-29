@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#e9edeb" />
+    <title>Mockups de GrowPath</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Inter, "Avenir Next", Avenir, sans-serif;
+        color: #1b2522;
+        background: #e9edeb;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        --gallery-ink: #1b2522;
+        --gallery-muted: #65716c;
+        --gallery-line: #cdd5d1;
+        --focus: #3159df;
+      }
+
+      * { box-sizing: border-box; }
+      body { min-width: 320px; margin: 0; }
+      button, input { font: inherit; }
+      button { cursor: pointer; }
+      button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+
+      .gallery { width: min(1320px, calc(100% - 44px)); margin: 0 auto; padding: 40px 0 56px; }
+      .gallery-head { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 25px; }
+      .gallery-kicker, .preview-kicker { color: var(--gallery-muted); font: 600 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; }
+      .gallery h1 { max-width: 740px; margin: 9px 0 0; font-size: clamp(30px, 4vw, 48px); line-height: 1.03; letter-spacing: -.055em; }
+      .gallery-intro { max-width: 460px; margin: 0; color: var(--gallery-muted); font-size: 15px; line-height: 1.55; }
+      .directions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 27px; }
+      .direction { min-height: 118px; padding: 17px 18px; border: 1px solid var(--gallery-line); border-radius: 8px; background: rgba(255,255,255,.48); color: inherit; text-align: left; transition: border-color .15s ease, background .15s ease; }
+      .direction:hover { border-color: #71827a; }
+      .direction[aria-pressed="true"] { border-color: #1c342d; background: #fff; box-shadow: inset 0 0 0 1px #1c342d; }
+      .direction-index { display: block; margin-bottom: 11px; color: var(--gallery-muted); font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .1em; }
+      .direction-title { display: block; margin-bottom: 5px; font-size: 16px; font-weight: 700; letter-spacing: -.02em; }
+      .direction-copy { display: block; max-width: 345px; color: var(--gallery-muted); font-size: 12px; line-height: 1.4; }
+
+      .preview-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 0 2px 11px; }
+      .preview-head h2 { margin: 0; font-size: 15px; letter-spacing: -.02em; }
+      .preview-label { padding: 6px 9px; border: 1px solid var(--gallery-line); border-radius: 100px; color: var(--gallery-muted); font-size: 11px; }
+      .stage-controls { display: flex; gap: 7px; margin-bottom: 10px; }
+      .stage-control { padding: 8px 12px; border: 1px solid var(--gallery-line); border-radius: 6px; background: transparent; color: var(--gallery-muted); font-size: 12px; }
+      .stage-control[aria-selected="true"] { border-color: var(--gallery-ink); background: var(--gallery-ink); color: #fff; }
+      .browser-frame { overflow: hidden; border: 1px solid #c5cfca; border-radius: 10px; background: #fff; box-shadow: 0 18px 45px rgba(23, 37, 31, .08); }
+      .browser-chrome { display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border-bottom: 1px solid #e1e5e2; background: #f8f9f8; }
+      .chrome-dot { width: 7px; height: 7px; border-radius: 50%; background: #c8d0cb; }
+      .chrome-address { width: min(320px, 45vw); margin-left: 7px; padding: 4px 10px; border-radius: 4px; background: #edf0ee; color: #7a8580; font: 10px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .preview-note { margin: 11px 2px 0; color: var(--gallery-muted); font-size: 11px; }
+
+      #preview { --page: #f0f4f1; --surface: #fffefa; --ink: #20332e; --muted: #64756f; --accent: #286c63; --signal: #ecc45c; --line: #cbd8d1; --radius: 7px; --heading: Georgia, "Times New Roman", serif; --body: Inter, "Avenir Next", Avenir, sans-serif; }
+      #preview[data-design="directo"] { --page: #f3f5f8; --surface: #fff; --ink: #19202c; --muted: #697386; --accent: #3159df; --signal: #56c7ac; --line: #d8deea; --radius: 12px; --heading: Inter, "Avenir Next", Avenir, sans-serif; }
+      #preview[data-design="evidencia"] { --page: #fff9f1; --surface: #fffefd; --ink: #29231f; --muted: #786d62; --accent: #c94f35; --signal: #efb54e; --line: #e6d9c9; --radius: 2px; --heading: Georgia, "Times New Roman", serif; --body: "Avenir Next", Avenir, sans-serif; }
+      .product { min-height: 536px; padding-bottom: 35px; background: var(--page); color: var(--ink); font-family: var(--body); }
+      .product-topbar { display: flex; align-items: center; justify-content: space-between; min-height: 61px; padding: 0 5.5%; border-bottom: 1px solid var(--line); background: var(--surface); }
+      .product-brand { display: flex; align-items: center; gap: 9px; }
+      .brand-glyph { display: grid; width: 27px; height: 27px; place-items: center; border-radius: 7px; background: var(--accent); color: var(--signal); font-size: 16px; font-weight: 800; }
+      .brand-word { font-size: 16px; font-weight: 750; letter-spacing: -.05em; }
+      .brand-separator { width: 1px; height: 19px; margin: 0 1px 0 3px; background: var(--line); }
+      .product-name { color: var(--muted); font-size: 11px; font-weight: 550; }
+      .product-top-note { color: var(--muted); font-size: 10px; }
+      .step-track { display: flex; justify-content: center; gap: 28px; max-width: 770px; margin: 0 auto; padding: 20px 18px 15px; }
+      .track-step { display: flex; align-items: center; gap: 7px; color: #9aa49e; font-size: 11px; white-space: nowrap; }
+      .track-no { display: grid; width: 23px; height: 23px; place-items: center; border: 1px solid var(--line); border-radius: 50%; font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .track-step.is-active { color: var(--ink); font-weight: 700; }
+      .track-step.is-active .track-no { border-color: var(--accent); background: var(--accent); color: #fff; }
+      .product-content { width: min(1030px, calc(100% - 56px)); margin: 0 auto; padding-top: 18px; }
+      .product h1, .product h2, .product h3, .product p { margin-top: 0; }
+      .product h1, .product h2 { font-family: var(--heading); letter-spacing: -.045em; }
+      .product h1 { margin-bottom: 10px; font-size: clamp(28px, 3.6vw, 43px); line-height: 1.06; }
+      .product h2 { margin-bottom: 13px; font-size: clamp(24px, 3vw, 34px); line-height: 1.08; }
+      .product h3 { margin-bottom: 10px; font-size: 13px; letter-spacing: -.015em; }
+      .eyebrow { margin-bottom: 9px; color: var(--accent); font: 650 10px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .09em; text-transform: uppercase; }
+      .lead { max-width: 570px; margin-bottom: 22px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+      .source-layout { display: grid; grid-template-columns: minmax(210px, .75fr) minmax(0, 1.45fr); gap: clamp(24px, 5vw, 62px); align-items: center; min-height: 395px; }
+      .source-index { align-self: stretch; display: flex; flex-direction: column; justify-content: center; padding: 28px 0 28px 22px; border-left: 2px solid var(--signal); }
+      .source-index strong { margin-top: 11px; font-family: var(--heading); font-size: 26px; letter-spacing: -.04em; }
+      .source-index p { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+      .source-main { max-width: 650px; }
+      .source-main.centered { max-width: 680px; margin: 0 auto; padding: 28px 0; }
+      .field-label { display: block; margin-bottom: 7px; font-size: 11px; font-weight: 700; }
+      .input-row { display: flex; gap: 8px; }
+      .product input { width: 100%; min-width: 0; height: 45px; padding: 0 13px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); font-size: 12px; }
+      .product input::placeholder { color: #a0a6a4; }
+      .product-button { min-height: 43px; padding: 0 16px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; white-space: nowrap; }
+      .manual-link { padding: 0; border: 0; background: none; color: var(--accent); font-size: 11px; font-weight: 650; }
+      .manual-row { display: flex; align-items: center; gap: 12px; margin-top: 13px; }
+      .manual-row span { color: #a0a6a4; font-size: 11px; }
+      .microcopy { margin: 15px 0 0; color: var(--muted); font-size: 10px; line-height: 1.45; }
+      .sample-quote { margin: 20px 0 0; padding: 0 0 0 14px; border-left: 2px solid var(--signal); font-family: var(--heading); font-size: 15px; line-height: 1.5; }
+      .sample-quote cite { display: block; margin-top: 9px; color: var(--muted); font: 10px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .04em; text-transform: uppercase; }
+      .source-card { padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+      .offer-heading { display: flex; align-items: start; justify-content: space-between; gap: 18px; padding-bottom: 19px; border-bottom: 1px solid var(--line); }
+      .offer-heading h2 { margin-bottom: 5px; }
+      .offer-heading p { margin-bottom: 0; color: var(--muted); font-size: 11px; }
+      .sample-tag { flex: 0 0 auto; padding: 6px 8px; border-radius: 4px; background: color-mix(in srgb, var(--signal) 27%, white); color: var(--ink); font-size: 9px; font-weight: 700; }
+      .offer-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(220px, .9fr); gap: 18px; padding-top: 17px; }
+      .skill-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; list-style: none; }
+      .skill-list li { padding: 6px 9px; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--ink); font-size: 10px; }
+      .fact-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }
+      .fact-list div { min-width: 0; }
+      .fact-list dt { margin-bottom: 3px; color: var(--muted); font-size: 9px; }
+      .fact-list dd { margin: 0; font-size: 11px; font-weight: 650; }
+      .evidence-block { margin-top: 18px; padding: 15px 17px; border-left: 3px solid var(--signal); background: color-mix(in srgb, var(--signal) 11%, var(--surface)); }
+      .evidence-label { display: block; margin-bottom: 6px; color: var(--accent); font: 650 9px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .07em; text-transform: uppercase; }
+      .evidence-block blockquote { margin: 0; font-size: 11px; line-height: 1.5; }
+      .two-col { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(245px, .95fr); gap: 20px; align-items: start; }
+      .plain-section { padding: 18px 0; border-top: 1px solid var(--line); }
+      .plain-section:first-child { border-top: 0; }
+      .summary-text { color: var(--muted); font-size: 12px; line-height: 1.6; }
+      .action-list { display: grid; gap: 9px; padding: 0; list-style: none; }
+      .action-list li { display: flex; gap: 9px; align-items: start; color: var(--muted); font-size: 11px; line-height: 1.45; }
+      .action-list li::before { content: "↗"; color: var(--accent); font-weight: 800; }
+      .analysis-callout { padding: 18px; border-radius: var(--radius); background: var(--accent); color: #fff; }
+      .analysis-callout .eyebrow { color: var(--signal); }
+      .analysis-callout p { margin: 0; font-family: var(--heading); font-size: 19px; line-height: 1.4; }
+      .quote-stack { display: grid; gap: 9px; }
+      .quote-card { margin: 0; padding: 13px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); font-size: 11px; line-height: 1.5; }
+      .quote-card cite { display: block; margin-top: 8px; color: var(--accent); font: 650 9px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
+      .direct-details { border-top: 1px solid var(--line); }
+      .direct-details summary { padding: 12px 0; color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer; }
+      .direct-details .evidence-block { margin: 0 0 12px; }
+
+      #preview[data-design="directo"] .product-content { width: min(800px, calc(100% - 56px)); }
+      #preview[data-design="directo"] .step-track { gap: 9px; padding-top: 18px; }
+      #preview[data-design="directo"] .track-step { padding: 7px 11px; border-radius: 100px; }
+      #preview[data-design="directo"] .track-step.is-active { background: #e5ebff; color: #2446b9; }
+      #preview[data-design="directo"] .track-step.is-active .track-no { border-color: var(--accent); background: var(--accent); }
+      #preview[data-design="directo"] .source-layout { display: block; min-height: 0; padding: 42px 0 35px; }
+      #preview[data-design="directo"] .source-main.centered { padding: 0; }
+      #preview[data-design="directo"] .product h1 { font-family: var(--body); font-weight: 730; letter-spacing: -.06em; }
+      #preview[data-design="directo"] .product-button { box-shadow: 0 5px 12px rgba(49, 89, 223, .18); }
+      #preview[data-design="directo"] .source-card { border-color: transparent; box-shadow: 0 8px 25px rgba(28, 42, 71, .06); }
+      #preview[data-design="directo"] .offer-heading { align-items: center; }
+      #preview[data-design="directo"] .evidence-block { border: 1px solid var(--line); border-left: 3px solid var(--accent); background: #f6f8ff; }
+      #preview[data-design="directo"] .analysis-callout { background: #edf1ff; color: var(--ink); }
+      #preview[data-design="directo"] .analysis-callout .eyebrow { color: var(--accent); }
+      #preview[data-design="directo"] .analysis-callout p { font-family: var(--body); font-size: 17px; font-weight: 650; }
+
+      #preview[data-design="evidencia"] .product-topbar { min-height: 55px; border-bottom: 2px solid var(--ink); }
+      #preview[data-design="evidencia"] .product-name { font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .04em; text-transform: uppercase; }
+      #preview[data-design="evidencia"] .brand-glyph { border-radius: 0; }
+      #preview[data-design="evidencia"] .step-track { justify-content: flex-start; gap: 25px; max-width: 1050px; padding: 19px 0 12px; }
+      #preview[data-design="evidencia"] .track-step { position: relative; font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; text-transform: uppercase; }
+      #preview[data-design="evidencia"] .track-no { border: 0; border-radius: 0; background: var(--signal); color: var(--ink); font-weight: 700; }
+      #preview[data-design="evidencia"] .source-layout { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 34px; }
+      #preview[data-design="evidencia"] .source-index { padding-left: 0; border-left: 0; }
+      #preview[data-design="evidencia"] .source-index strong { max-width: 340px; font-size: clamp(28px, 4vw, 42px); line-height: 1.02; }
+      #preview[data-design="evidencia"] .sample-quote { font-size: 16px; }
+      #preview[data-design="evidencia"] .source-main { padding: 23px; border-top: 2px solid var(--accent); background: var(--surface); }
+      #preview[data-design="evidencia"] .source-card { border-radius: 0; }
+      #preview[data-design="evidencia"] .offer-heading { border-bottom: 2px solid var(--ink); }
+      #preview[data-design="evidencia"] .offer-grid { grid-template-columns: minmax(0, .8fr) minmax(250px, 1.2fr); }
+      #preview[data-design="evidencia"] .evidence-block { border-left-width: 2px; background: transparent; }
+      #preview[data-design="evidencia"] .quote-card { border-radius: 0; }
+      #preview[data-design="evidencia"] .analysis-callout { border-radius: 0; background: transparent; border-top: 2px solid var(--accent); color: var(--ink); }
+      #preview[data-design="evidencia"] .analysis-callout .eyebrow { color: var(--accent); }
+      #preview[data-design="evidencia"] .analysis-callout p { font-size: 23px; }
+
+      @media (max-width: 760px) {
+        .gallery { width: min(100% - 28px, 600px); padding-top: 26px; }
+        .gallery-head { display: block; }
+        .gallery-intro { margin-top: 11px; }
+        .directions { grid-template-columns: 1fr; gap: 7px; margin-bottom: 20px; }
+        .direction { min-height: 0; padding: 13px 14px; }
+        .direction-index { float: right; margin: 2px 0 0 10px; }
+        .direction-title { margin-bottom: 3px; }
+        .direction-copy { max-width: none; }
+        .preview-head { align-items: start; }
+        .product { min-height: 0; }
+        .product-topbar { min-height: 54px; padding: 0 17px; }
+        .product-top-note { display: none; }
+        .product-top-note { font-size: 9px; }
+        .step-track { justify-content: space-between; gap: 5px; padding: 14px 11px 12px; }
+        .track-step { flex-direction: column; gap: 4px; font-size: 9px; }
+        .track-no { width: 20px; height: 20px; }
+        .product-content, #preview[data-design="directo"] .product-content { width: calc(100% - 32px); padding-top: 13px; }
+        .source-layout, #preview[data-design="evidencia"] .source-layout { display: block; min-height: 0; padding: 14px 0 22px; }
+        .source-index { display: none; }
+        .source-main.centered { padding: 8px 0 12px; }
+        .product h1 { font-size: 29px; }
+        .input-row { display: grid; }
+        .product-button { width: 100%; }
+        .source-main { margin-top: 7px; }
+        #preview[data-design="evidencia"] .source-main { margin-top: 22px; padding: 17px; }
+        .offer-grid, #preview[data-design="evidencia"] .offer-grid, .two-col { grid-template-columns: 1fr; }
+        .fact-list { gap: 11px; }
+        .source-card { padding: 15px; }
+        .offer-heading { display: block; }
+        .offer-heading .sample-tag { display: inline-block; margin-top: 9px; }
+        .analysis-callout { margin-bottom: 15px; }
+        #preview[data-design="evidencia"] .step-track { padding-right: 0; padding-left: 0; }
+      }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; } }
+    </style>
+  </head>
+  <body>
+    <main class="gallery">
+      <header class="gallery-head">
+        <div>
+          <p class="gallery-kicker">GrowPath · Propuestas visuales</p>
+          <h1>Tres caminos para entender una oferta.</h1>
+        </div>
+        <p class="gallery-intro">Elige el estilo que se siente más claro. Los controles permiten recorrer las tres etapas con el mismo ejemplo.</p>
+      </header>
+
+      <section class="directions" aria-label="Estilos de los mockups">
+        <button class="direction" type="button" data-design-choice="ficha" aria-pressed="true">
+          <span class="direction-index">A · DOCUMENTO</span>
+          <span class="direction-title">Ficha de lectura</span>
+          <span class="direction-copy">Ordenada y cálida. Los datos forman una ficha fácil de revisar.</span>
+        </button>
+        <button class="direction" type="button" data-design-choice="directo" aria-pressed="false">
+          <span class="direction-index">B · HERRAMIENTA</span>
+          <span class="direction-title">Al grano</span>
+          <span class="direction-copy">Un paso a la vez, con el mínimo de texto y controles.</span>
+        </button>
+        <button class="direction" type="button" data-design-choice="evidencia" aria-pressed="false">
+          <span class="direction-index">C · FUENTES</span>
+          <span class="direction-title">Evidencia primero</span>
+          <span class="direction-copy">Las citas de la oferta llevan el ritmo; cada dato conserva su origen.</span>
+        </button>
+      </section>
+
+      <div class="preview-head">
+        <h2 id="direction-heading">A · Ficha de lectura</h2>
+        <span class="preview-label">Mockup interactivo · datos ficticios</span>
+      </div>
+      <nav class="stage-controls" aria-label="Etapa del flujo" role="tablist">
+        <button class="stage-control" type="button" role="tab" aria-selected="true" data-step-choice="source">1 · Enlace</button>
+        <button class="stage-control" type="button" role="tab" aria-selected="false" data-step-choice="offer">2 · Requisitos</button>
+        <button class="stage-control" type="button" role="tab" aria-selected="false" data-step-choice="analysis">3 · Lectura</button>
+      </nav>
+
+      <section class="browser-frame" aria-label="Vista previa del mockup">
+        <div class="browser-chrome" aria-hidden="true">
+          <span class="chrome-dot"></span><span class="chrome-dot"></span><span class="chrome-dot"></span>
+          <span class="chrome-address">growpath.local / analizador</span>
+        </div>
+        <div id="preview" data-design="ficha" aria-live="polite"></div>
+      </section>
+      <p class="preview-note">Solo son propuestas de diseño; el formulario no envía datos ni ejecuta análisis.</p>
+    </main>
+
+    <script>
+      const designNames = {
+        ficha: 'A · Ficha de lectura',
+        directo: 'B · Al grano',
+        evidencia: 'C · Evidencia primero',
+      }
+      const stages = ['source', 'offer', 'analysis']
+      let activeDesign = 'ficha'
+      let activeStage = 'source'
+
+      function track() {
+        const labels = [['source', 'Enlace'], ['offer', 'Requisitos'], ['analysis', 'Lectura']]
+        return `<nav class="step-track" aria-label="Progreso">${labels.map(([id, label], index) => `<span class="track-step ${id === activeStage ? 'is-active' : ''}"><span class="track-no">0${index + 1}</span>${label}</span>`).join('')}</nav>`
+      }
+
+      function productTop() {
+        const note = activeDesign === 'evidencia' ? 'ANÁLISIS DE OFERTAS' : 'Analizador de ofertas'
+        return `<header class="product-topbar"><div class="product-brand"><span class="brand-glyph">G</span><span class="brand-word">GrowPath</span><span class="brand-separator"></span><span class="product-name">${note}</span></div><span class="product-top-note">Oferta de ejemplo</span></header>`
+      }
+
+      function sourceView() {
+        if (activeDesign === 'directo') return `<div class="product-content"><section class="source-layout"><div class="source-main centered"><p class="eyebrow">UNA OFERTA · TRES PASOS</p><h1>¿Qué oferta quieres revisar?</h1><p class="lead">Pega el enlace público para empezar.</p><label class="field-label" for="sample-url">Enlace de la oferta</label><div class="input-row"><input id="sample-url" readonly placeholder="https://empresa.com/puesto" /><button class="product-button" type="button">Leer oferta&nbsp; →</button></div><div class="manual-row"><span>Si el enlace pide iniciar sesión,</span><button class="manual-link" type="button">pega la descripción</button></div></div></section></div>`
+        if (activeDesign === 'evidencia') return `<div class="product-content"><div class="source-layout"><aside class="source-index"><p class="eyebrow">01 · FUENTE</p><h1>Cada dato con su origen.</h1><p class="lead">Comprueba cada requisito junto a la frase que lo respalda.</p></aside><section class="source-main"><p class="eyebrow">EMPEZAR ANÁLISIS</p><h2>Lee una oferta pública.</h2><label class="field-label" for="sample-url">Enlace de la oferta</label><div class="input-row"><input id="sample-url" readonly placeholder="https://empresa.com/puesto" /><button class="product-button" type="button">Leer&nbsp; →</button></div><div class="manual-row"><button class="manual-link" type="button">¿No abre? Pega la descripción.</button></div></section></div></div>`
+        return `<div class="product-content"><div class="source-layout"><aside class="source-index"><p class="eyebrow">PASO 01</p><strong>La fuente</strong><p>Una oferta por análisis</p></aside><section class="source-main"><p class="eyebrow">ENLACE O DESCRIPCIÓN</p><h1>¿Qué oferta quieres revisar?</h1><p class="lead">Pega el enlace público. Si pide iniciar sesión, puedes usar su descripción.</p><label class="field-label" for="sample-url">Enlace de la oferta</label><div class="input-row"><input id="sample-url" readonly placeholder="https://empresa.com/puesto" /><button class="product-button" type="button">Leer oferta&nbsp; →</button></div></section></div></div>`
+      }
+
+      function offerView() {
+        const evidence = `<div class="evidence-block"><span class="evidence-label">Cita de la oferta</span><blockquote>“Apoyar la calidad de datos mediante controles, validaciones y automatización.”</blockquote></div>`
+        if (activeDesign === 'directo') return `<div class="product-content"><div class="offer-heading"><div><p class="eyebrow">RESUMEN</p><h2>Practicante de Data Quality</h2><p>Banco de muestra · Lima, Perú</p></div><span class="sample-tag">EJEMPLO</span></div><div class="offer-grid"><section><div class="plain-section"><h3>Requisitos</h3><ul class="skill-list"><li>SQL</li><li>BigQuery</li><li>GCP</li></ul></div><div class="plain-section"><h3>También menciona</h3><p class="summary-text">Azure · validar en el aviso original</p></div></section><section><div class="plain-section"><h3>Condiciones</h3><dl class="fact-list"><div><dt>Nivel</dt><dd>Practicante</dd></div><div><dt>Modalidad</dt><dd>Remoto</dd></div><div><dt>Ubicación</dt><dd>Perú</dd></div><div><dt>Salario</dt><dd>No indicado</dd></div></dl></div><details class="direct-details" open><summary>Ver cita de respaldo</summary>${evidence}</details></section></div></div>`
+        if (activeDesign === 'evidencia') return `<div class="product-content"><p class="eyebrow">REQUISITOS ENCONTRADOS</p><div class="offer-heading"><div><h2>Practicante de Data Quality</h2><p>Oferta de ejemplo · Perú · Remoto</p></div><span class="sample-tag">DATOS DE MUESTRA</span></div><div class="offer-grid"><section><div class="plain-section"><h3>Requisitos técnicos</h3><ul class="skill-list"><li>SQL</li><li>BigQuery</li><li>GCP</li></ul></div><div class="plain-section"><h3>Condiciones</h3><dl class="fact-list"><div><dt>Nivel</dt><dd>Practicante</dd></div><div><dt>Salario</dt><dd>No indicado</dd></div></dl></div></section><section class="quote-stack"><blockquote class="quote-card">“Apoyar la calidad de datos mediante controles, validaciones y automatización en BigQuery, SQL y GCP.”<cite>Respalda · SQL · BigQuery · GCP</cite></blockquote><blockquote class="quote-card">“Analista / Integrador de Datos — Azure.”<cite>Mención relacionada · revisar contexto</cite></blockquote></section></div></div>`
+        return `<div class="product-content"><div class="offer-heading"><div><p class="eyebrow">RESUMEN DE LA OFERTA</p><h2>Practicante de Data Quality</h2><p>Perú · Remoto</p></div><span class="sample-tag">EJEMPLO</span></div><div class="offer-grid"><section><div class="plain-section"><h3>Requisitos técnicos</h3><ul class="skill-list"><li>SQL</li><li>BigQuery</li><li>GCP</li></ul></div><div class="plain-section"><h3>Mención relacionada</h3><p class="summary-text">Azure aparece en otra referencia; conviene validar si aplica a esta vacante.</p></div></section><section><div class="plain-section"><h3>Datos de la oferta</h3><dl class="fact-list"><div><dt>Nivel</dt><dd>Practicante</dd></div><div><dt>Modalidad</dt><dd>Remoto</dd></div><div><dt>Ubicación</dt><dd>Perú</dd></div><div><dt>Salario</dt><dd>No indicado</dd></div></dl></div>${evidence}</section></div></div>`
+      }
+
+      function analysisView() {
+        const summary = 'La oferta se centra en controles y validación de datos. SQL, BigQuery y GCP aparecen directamente en las funciones descritas.'
+        const advice = `<ul class="action-list"><li>Cuenta un ejemplo de validación de datos con SQL.</li><li>Explica cómo automatizaste o monitoreaste controles.</li><li>Confirma las menciones secundarias con el anuncio original.</li></ul>`
+        if (activeDesign === 'directo') return `<div class="product-content"><p class="eyebrow">LECTURA DE MUESTRA</p><h2>Practicante de Data Quality</h2><div class="analysis-callout"><p>${summary}</p></div><div class="two-col"><section class="plain-section"><h3>Qué conviene destacar</h3>${advice}</section><section class="plain-section"><h3>Antes de postular</h3><p class="summary-text">Verifica modalidad, condiciones y que las tecnologías mencionadas correspondan al aviso.</p></section></div></div>`
+        if (activeDesign === 'evidencia') return `<div class="product-content"><div class="two-col"><section><p class="eyebrow">LECTURA DE MUESTRA</p><h2>Data Quality, con foco en controles.</h2><p class="summary-text">${summary}</p><div class="plain-section"><h3>Qué demostrar</h3>${advice}</div></section><section><p class="eyebrow">RESPALDO TEXTUAL</p><div class="quote-stack"><blockquote class="quote-card">“controles, validaciones y automatización en BigQuery, SQL y GCP.”<cite>Requisito técnico · fuente de ejemplo</cite></blockquote><blockquote class="quote-card">“Analista / Integrador de Datos — Azure.”<cite>Mención relacionada · validar contexto</cite></blockquote></div></section></div></div>`
+        return `<div class="product-content"><p class="eyebrow">LECTURA GENERAL</p><h2>Practicante de Data Quality</h2><div class="two-col"><section class="analysis-callout"><span class="eyebrow">LECTURA RÁPIDA</span><p>${summary}</p></section><section class="plain-section"><h3>Qué podrías destacar</h3>${advice}</section></div><div class="evidence-block"><span class="evidence-label">Antes de postular</span><blockquote>Confirma las menciones relacionadas y las condiciones en la publicación original.</blockquote></div></div>`
+      }
+
+      function render() {
+        const preview = document.querySelector('#preview')
+        preview.dataset.design = activeDesign
+        const screen = activeStage === 'source' ? sourceView() : activeStage === 'offer' ? offerView() : analysisView()
+        preview.innerHTML = `<div class="product">${productTop()}${track()}${screen}</div>`
+        document.querySelector('#direction-heading').textContent = designNames[activeDesign]
+      }
+
+      document.querySelectorAll('[data-design-choice]').forEach((button) => {
+        button.addEventListener('click', () => {
+          activeDesign = button.dataset.designChoice
+          document.querySelectorAll('[data-design-choice]').forEach((choice) => choice.setAttribute('aria-pressed', String(choice === button)))
+          render()
+        })
+      })
+      document.querySelectorAll('[data-step-choice]').forEach((button, index) => {
+        button.addEventListener('click', () => {
+          activeStage = stages[index]
+          document.querySelectorAll('[data-step-choice]').forEach((choice) => choice.setAttribute('aria-selected', String(choice === button)))
+          render()
+        })
+      })
+      render()
+    </script>
+  </body>
+</html>

@@ -307,6 +307,14 @@ export default function App() {
   const sourceWarning = (hasUrl || hasDescription) && validation ? validation : ''
   const originalUrl =
     result?.input.type === 'url' ? safeExternalUrl(result.input.originalUrl) : null
+  const inspectionFacts = inspection
+    ? [
+        { label: 'Nivel', value: inspection.requirements.level },
+        { label: 'Ubicación', value: inspection.requirements.location },
+        { label: 'Modalidad', value: inspection.requirements.workMode },
+        { label: 'Salario', value: inspection.requirements.salary },
+      ].filter((fact): fact is { label: string; value: string } => Boolean(fact.value))
+    : []
 
   useEffect(
     () => () => {
@@ -451,27 +459,19 @@ export default function App() {
       <header className="topbar">
         <div className="brand-block">
           <a className="brand" href="/" aria-label="Ir al inicio de GrowPath">
+            <span className="brand-mark" aria-hidden="true">
+              <img src="/gpath-mark.svg" alt="" />
+            </span>
             <span className="brand-name">GrowPath</span>
             <span className="brand-divider" aria-hidden="true">
               |
             </span>
             <span className="brand-product">Analizador de ofertas</span>
           </a>
-          <p className="brand-tagline">Tu ruta rápida para entender una oferta.</p>
         </div>
       </header>
 
       <main className={phase === 'source' ? 'source-screen' : 'review-screen'}>
-        <section className="hero" aria-labelledby="analyzer-title">
-          <div className="hero-copy">
-            <h1 id="analyzer-title">Entiende una oferta antes de postular</h1>
-            <p>
-              Lee los requisitos, las condiciones y las señales importantes de una oferta en un solo
-              lugar.
-            </p>
-          </div>
-        </section>
-
         <nav className="workflow-nav" aria-label="Pasos del análisis">
           <ol>
             {workflowSteps.map((step, index) => (
@@ -501,142 +501,137 @@ export default function App() {
         >
           {phase === 'source' && (
             <section className="step-view" aria-labelledby="source-title">
-              <p className="step-kicker">Paso 1 de 3</p>
-              <h2 id="source-title">Pega el enlace de una oferta</h2>
-              <p className="step-intro">
-                Usaremos el contenido público de la página. No necesitas crear una cuenta ni subir
-                tu CV.
-              </p>
+              <div className="source-entry">
+                <div className="source-intro">
+                  <h1 id="source-title">Pega el enlace de una oferta.</h1>
+                  <p className="source-promise" id="source-help">
+                    Cada requisito aparecerá junto a la cita que lo respalda.
+                  </p>
+                </div>
 
-              <form className="analyze-form" onSubmit={submitSource}>
-                <label className="field-label" htmlFor="offer-url">
-                  Enlace público de la oferta
-                </label>
-                <input
-                  id="offer-url"
-                  type="url"
-                  inputMode="url"
-                  placeholder="https://empresa.com/carreras/..."
-                  value={url}
-                  disabled={loading || hasDescription}
-                  aria-describedby="source-help"
-                  onChange={(event) => updateSource('url', event.target.value)}
-                />
-
-                <button
-                  className="manual-source-toggle"
-                  type="button"
-                  disabled={loading}
-                  onClick={() => setShowManualDescription((visible) => !visible)}
-                >
-                  {showManualDescription ? 'Ocultar alternativa' : 'No puedo abrir el enlace'}
-                </button>
-
-                {showManualDescription && (
-                  <div className="manual-source">
-                    <label className="field-label" htmlFor="offer-description">
-                      Pega la descripción de la oferta
-                    </label>
-                    <textarea
-                      id="offer-description"
-                      rows={7}
-                      placeholder="Pega aquí el texto de la vacante tal como lo encontraste."
-                      value={description}
-                      disabled={loading || hasUrl}
-                      aria-describedby="source-help"
-                      onChange={(event) => updateSource('description', event.target.value)}
+                <form className="analyze-form" onSubmit={submitSource}>
+                  <label className="field-label" htmlFor="offer-url">
+                    Enlace de la oferta
+                  </label>
+                  <div className="source-input-row">
+                    <input
+                      id="offer-url"
+                      type="url"
+                      inputMode="url"
+                      placeholder="https://empresa.com/carreras/..."
+                      value={url}
+                      disabled={loading || hasDescription}
+                      aria-describedby={sourceWarning ? 'source-help source-warning' : 'source-help'}
+                      aria-invalid={Boolean(sourceWarning)}
+                      onChange={(event) => updateSource('url', event.target.value)}
                     />
+                    <button className="primary-action" disabled={!canSubmitSource} type="submit">
+                      {loading ? 'Leyendo…' : 'Leer oferta'}
+                      <FiArrowRight aria-hidden="true" />
+                    </button>
                   </div>
-                )}
 
-                <p className={`source-help ${sourceWarning ? 'has-warning' : ''}`} id="source-help">
-                  {sourceWarning ||
-                    'También puedes usar una descripción si la página requiere iniciar sesión.'}
-                </p>
-                <button className="primary-action" disabled={!canSubmitSource} type="submit">
-                  {loading ? 'Leyendo oferta…' : 'Leer oferta'}
-                  <FiArrowRight aria-hidden="true" />
-                </button>
-              </form>
+                  <button
+                    className="manual-source-toggle"
+                    type="button"
+                    disabled={loading}
+                    onClick={() => setShowManualDescription((visible) => !visible)}
+                  >
+                    {showManualDescription
+                      ? 'Ocultar descripción'
+                      : '¿No abre? Pega la descripción.'}
+                  </button>
+
+                  {showManualDescription && (
+                    <div className="manual-source">
+                      <label className="field-label" htmlFor="offer-description">
+                        Descripción de la oferta
+                      </label>
+                      <textarea
+                        id="offer-description"
+                        rows={7}
+                        placeholder="Pega aquí el texto de la vacante tal como lo encontraste."
+                        value={description}
+                        disabled={loading || hasUrl}
+                        aria-describedby={sourceWarning ? 'source-help source-warning' : 'source-help'}
+                        aria-invalid={Boolean(sourceWarning)}
+                        onChange={(event) => updateSource('description', event.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  {sourceWarning && (
+                    <p className="source-help has-warning" id="source-warning" role="alert">
+                      {sourceWarning}
+                    </p>
+                  )}
+                </form>
+              </div>
             </section>
           )}
 
           {phase === 'offer' && inspection && (
-            <section className="step-view" aria-labelledby="offer-title">
-              <p className="step-kicker">Paso 2 de 3 · Lectura completada</p>
-              <div className="step-heading-row">
+            <section className="step-view offer-review" aria-labelledby="offer-title">
+              <header className="offer-review-heading">
                 <div>
-                  <h2 id="offer-title">Esto es lo que encontramos</h2>
-                  <p className="step-intro">
-                    Revisa la información detectada antes de abrir el análisis general.
-                  </p>
+                  <h1 id="offer-title">
+                    {inspection.offer?.title || 'Puesto no identificado'}
+                  </h1>
+                  <p className="step-intro">Revisa los datos y sus citas antes de continuar.</p>
                 </div>
-                <span className="read-status">
-                  <FiCheck aria-hidden="true" /> Oferta leída
-                </span>
-              </div>
+              </header>
 
-              <div className="offer-identity">
-                <p className="section-label">Puesto de la oferta</p>
-                <strong>{inspection.offer?.title || 'Puesto no identificado'}</strong>
-              </div>
-
-              <div className="offer-summary">
-                <section aria-labelledby="detected-requirements-title">
-                  <h3 id="detected-requirements-title">Requisitos técnicos</h3>
-                  {listOrEmpty(
-                    inspection.requirements.technical,
-                    'No se identificaron requisitos técnicos claros.',
-                  )}
-                  <h3 className="summary-subheading">Deseables</h3>
-                  {listOrEmpty(
-                    inspection.requirements.preferred,
-                    'No se identificaron requisitos deseables claros.',
-                  )}
-                </section>
-                <section className="detected-details" aria-labelledby="detected-details-title">
-                  <h3 id="detected-details-title">Datos de la oferta</h3>
-                  <dl>
-                    <div>
-                      <dt>Nivel</dt>
-                      <dd>{inspection.requirements.level || 'No indicado'}</dd>
-                    </div>
-                    <div>
-                      <dt>Ubicación</dt>
-                      <dd>{inspection.requirements.location || 'No indicada'}</dd>
-                    </div>
-                    <div>
-                      <dt>Modalidad</dt>
-                      <dd>{inspection.requirements.workMode || 'No indicada'}</dd>
-                    </div>
-                    {inspection.requirements.salary && (
-                      <div>
-                        <dt>Salario</dt>
-                        <dd>{inspection.requirements.salary}</dd>
-                      </div>
+              <div className="offer-evidence-layout">
+                <div className="offer-facts">
+                  <section className="review-group" aria-labelledby="detected-requirements-title">
+                    <h2 id="detected-requirements-title">Requisitos técnicos</h2>
+                    {listOrEmpty(
+                      inspection.requirements.technical,
+                      'No se identificaron requisitos técnicos claros.',
                     )}
-                  </dl>
-                </section>
-              </div>
+                  </section>
 
-              <section
-                className="inspection-evidence evidence-section"
-                aria-labelledby="evidence-title"
-              >
-                <h3 id="evidence-title">Evidencias de la oferta</h3>
-                {inspection.evidence.length ? (
-                  <ul>
-                    {inspection.evidence.map((evidence) => (
-                      <li key={`${evidence.label}-${evidence.text}`}>
-                        <strong>{evidence.label}</strong>
-                        <blockquote>{evidence.text}</blockquote>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="empty-list">No se devolvieron evidencias textuales.</p>
-                )}
-              </section>
+                  {inspection.requirements.preferred.length > 0 && (
+                    <section className="review-group" aria-labelledby="preferred-requirements-title">
+                      <h2 id="preferred-requirements-title">Deseables</h2>
+                      {listOrEmpty(inspection.requirements.preferred, '')}
+                    </section>
+                  )}
+
+                  {inspectionFacts.length > 0 && (
+                    <section className="review-group" aria-labelledby="detected-details-title">
+                      <h2 id="detected-details-title">Condiciones</h2>
+                      <dl className="offer-fact-list">
+                        {inspectionFacts.map((fact) => (
+                          <div key={fact.label}>
+                            <dt>{fact.label}</dt>
+                            <dd>{fact.value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </section>
+                  )}
+                </div>
+
+                <aside
+                  className="inspection-evidence evidence-section"
+                  aria-labelledby="evidence-title"
+                >
+                  <h2 id="evidence-title">Citas de la oferta</h2>
+                  {inspection.evidence.length ? (
+                    <ul>
+                      {inspection.evidence.map((evidence) => (
+                        <li key={`${evidence.label}-${evidence.text}`}>
+                          <strong>{evidence.label}</strong>
+                          <blockquote>{evidence.text}</blockquote>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="empty-list">No hay citas textuales disponibles.</p>
+                  )}
+                </aside>
+              </div>
             </section>
           )}
 
@@ -675,8 +670,7 @@ export default function App() {
           {phase === 'result' && result && (
             <section className="analysis-result" aria-labelledby="analysis-result-title">
               <header className="analysis-heading">
-                <p className="section-label">Paso 3 · Análisis de una oferta</p>
-                <h2 id="analysis-result-title">{offerTitle(result)}</h2>
+                <h1 id="analysis-result-title">{offerTitle(result)}</h1>
                 <div className="analysis-meta" aria-label="Datos detectados de la oferta">
                   {result.requirements.level && <span>{result.requirements.level}</span>}
                   {result.requirements.location && <span>{result.requirements.location}</span>}
@@ -712,6 +706,20 @@ export default function App() {
                 </section>
               </div>
 
+              {result.evidence.length > 0 && (
+                <details className="analysis-citations">
+                  <summary>Ver citas de la oferta</summary>
+                  <ul>
+                    {result.evidence.map((evidence) => (
+                      <li key={`${evidence.label}-${evidence.text}`}>
+                        <strong>{evidence.label}</strong>
+                        <blockquote>{evidence.text}</blockquote>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+
               {result.limitations.length > 0 && (
                 <details className="analysis-limits">
                   <summary>Alcance de esta lectura</summary>
@@ -732,12 +740,6 @@ export default function App() {
           )}
         </section>
       </main>
-
-      <footer>
-        <p>
-          GrowPath <span>Analizador de ofertas</span>
-        </p>
-      </footer>
     </div>
   )
 }

@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fff9f1" />
+    <title>GrowPath · propuesta documental</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+        color: #29231f;
+        background: #fff9f1;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        --canvas: #fff9f1;
+        --surface: #fffefd;
+        --ink: #29231f;
+        --muted: #786d62;
+        --accent: #c94f35;
+        --accent-dark: #a73b27;
+        --signal: #efb54e;
+        --line: #e6d9c9;
+        --soft: #f8f0e6;
+        --focus: #3159df;
+      }
+
+      * { box-sizing: border-box; }
+      body { min-width: 320px; margin: 0; background: var(--canvas); }
+      button, input { font: inherit; }
+      button, a { -webkit-tap-highlight-color: transparent; }
+      a { color: inherit; }
+      button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 3px;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 66px;
+        padding: 0 max(24px, calc((100vw - 1420px) / 2));
+        border-bottom: 1px solid var(--line);
+        background: rgba(255, 254, 253, .96);
+        backdrop-filter: blur(12px);
+      }
+      .brand { display: inline-flex; align-items: center; gap: 9px; text-decoration: none; }
+      .brand-mark {
+        display: grid;
+        width: 31px;
+        height: 31px;
+        place-items: center;
+        background: var(--accent);
+        color: #fff3d5;
+        font-size: 19px;
+        font-weight: 800;
+        letter-spacing: -.08em;
+      }
+      .brand-mark svg { width: 23px; height: 23px; fill: none; stroke: #efb54e; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .brand-mark svg circle { fill: #efb54e; stroke: none; }
+      .brand-name { font-size: 17px; font-weight: 760; letter-spacing: -.055em; }
+      .brand-divider { color: var(--line); }
+      .product-name {
+        color: var(--muted);
+        font: 10px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+      }
+      .demo-label {
+        padding: 6px 9px;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font: 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 204px minmax(0, 1fr) 270px;
+        gap: clamp(24px, 3vw, 46px);
+        width: min(1420px, calc(100% - 48px));
+        margin: 0 auto;
+        padding: 30px 0 76px;
+      }
+      .left-rail {
+        align-self: stretch;
+        min-width: 0;
+        padding: 5px 19px 0 0;
+        border-right: 1px solid var(--line);
+      }
+      .rail-label, .eyebrow, .mini-label {
+        color: var(--muted);
+        font: 600 9px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: .085em;
+        text-transform: uppercase;
+      }
+      .rail-label { margin: 0 0 11px; }
+      .flow-nav { display: grid; gap: 4px; }
+      .flow-step {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr);
+        align-items: center;
+        gap: 9px;
+        width: 100%;
+        min-height: 38px;
+        padding: 5px 8px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--muted);
+        font-size: 11px;
+        text-align: left;
+        cursor: pointer;
+      }
+      .flow-step:hover { border-color: var(--line); color: var(--ink); }
+      .flow-step[aria-current="step"] {
+        border-color: var(--line);
+        background: var(--surface);
+        color: var(--ink);
+        font-weight: 700;
+      }
+      .step-number {
+        display: grid;
+        width: 23px;
+        height: 23px;
+        place-items: center;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font: 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .flow-step[aria-current="step"] .step-number {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: white;
+      }
+      .rail-rule { height: 1px; margin: 20px 0 14px; background: var(--line); }
+      .section-index { display: grid; gap: 2px; }
+      .section-index a {
+        padding: 7px 8px;
+        color: var(--muted);
+        font-size: 10px;
+        text-decoration: none;
+      }
+      .section-index a:hover { color: var(--accent); }
+      .rail-note {
+        margin: 23px 0 0;
+        padding: 12px 0 0;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 10px;
+        line-height: 1.55;
+      }
+
+      .main-column { min-width: 0; }
+      .breadcrumbs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 1px 0 23px;
+        color: var(--muted);
+        font: 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+      }
+      .breadcrumbs span:last-child { color: var(--accent); }
+      .page-head {
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--line);
+      }
+      .page-head .eyebrow { margin: 0 0 9px; color: var(--accent); }
+      h1, h2, h3, p { margin-top: 0; }
+      h1, h2 {
+        font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+        font-weight: 600;
+        letter-spacing: -.045em;
+      }
+      h1 { max-width: 800px; margin-bottom: 9px; font-size: clamp(31px, 4vw, 43px); line-height: 1.04; }
+      .subtitle { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+      .source-line {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-top: 16px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+      .source-badge {
+        padding: 4px 7px;
+        background: var(--soft);
+        color: var(--accent-dark);
+        font: 9px ui-monospace, SFMono-Regular, Menlo, monospace;
+        text-transform: uppercase;
+      }
+      .source-url { overflow-wrap: anywhere; }
+
+      .article-section { padding: 23px 0 19px; border-bottom: 1px solid var(--line); }
+      .section-heading {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      h2 { margin: 0; font-size: 22px; line-height: 1.1; }
+      h3 { margin-bottom: 6px; font-size: 12px; letter-spacing: -.015em; }
+      .section-count { color: var(--muted); font: 9px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .requirement-list { display: grid; gap: 10px; }
+      .requirement {
+        display: grid;
+        grid-template-columns: minmax(100px, .35fr) minmax(0, 1fr);
+        gap: 16px;
+        padding: 13px 14px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+      }
+      .requirement-name { align-self: start; }
+      .requirement-name strong { display: block; font-size: 13px; }
+      .requirement-name span { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; }
+      .quote {
+        margin: 0;
+        padding-left: 12px;
+        border-left: 2px solid var(--signal);
+        color: var(--ink);
+        font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+        font-size: 12px;
+        line-height: 1.55;
+      }
+      .quote-source { display: block; margin-top: 7px; color: var(--muted); font: 8px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .fact-table { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
+      .fact {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        min-width: 0;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+        font-size: 10px;
+      }
+      .fact span { color: var(--muted); }
+      .fact strong { text-align: right; overflow-wrap: anywhere; }
+      .bottom-note {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        align-items: center;
+        padding: 18px 0 0;
+      }
+      .bottom-note p { max-width: 460px; margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 9px;
+        min-height: 38px;
+        padding: 0 13px;
+        border: 1px solid var(--accent);
+        background: var(--accent);
+        color: white;
+        font-size: 10px;
+        font-weight: 700;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .button:hover { border-color: var(--accent-dark); background: var(--accent-dark); }
+      .button.secondary { border-color: var(--line); background: transparent; color: var(--ink); }
+      .button.secondary:hover { background: var(--soft); }
+
+      .right-rail { min-width: 0; padding-top: 46px; }
+      .summary-card {
+        position: sticky;
+        top: 91px;
+        padding: 15px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+      }
+      .summary-card .mini-label { margin: 0 0 12px; color: var(--accent); }
+      .summary-title { margin: 0 0 13px; font-family: Georgia, "Iowan Old Style", serif; font-size: 17px; line-height: 1.2; }
+      .summary-facts { display: grid; margin: 0; }
+      .summary-facts div { padding: 9px 0; border-top: 1px solid var(--line); }
+      .summary-facts dt { margin-bottom: 4px; color: var(--muted); font: 8px ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .06em; text-transform: uppercase; }
+      .summary-facts dd { margin: 0; font-size: 10px; font-weight: 650; }
+      .summary-source {
+        margin: 13px 0 0;
+        padding: 11px 0 0;
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 9px;
+        line-height: 1.5;
+      }
+      .summary-actions { display: grid; gap: 7px; margin-top: 14px; }
+      .summary-actions .button { width: 100%; }
+      .info-card {
+        margin-top: 11px;
+        padding: 13px;
+        border-left: 2px solid var(--signal);
+        background: var(--soft);
+      }
+      .info-card strong { display: block; margin-bottom: 5px; font-size: 10px; }
+      .info-card p { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+
+      .source-form {
+        margin-top: 27px;
+        padding: 19px;
+        border: 1px solid var(--line);
+        border-top: 2px solid var(--accent);
+        background: var(--surface);
+      }
+      .field-label { display: block; margin-bottom: 7px; font-size: 10px; font-weight: 700; }
+      .input-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+      input {
+        width: 100%;
+        min-width: 0;
+        min-height: 39px;
+        padding: 0 11px;
+        border: 1px solid var(--line);
+        border-radius: 0;
+        background: var(--surface);
+        color: var(--ink);
+        font-size: 10px;
+      }
+      input::placeholder { color: #a29a91; }
+      .fallback-link {
+        display: inline-block;
+        margin-top: 11px;
+        padding: 0;
+        border: 0;
+        border-bottom: 1px solid currentColor;
+        background: transparent;
+        color: var(--accent);
+        font-size: 9px;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      .detail-panel { padding: 21px 0; border-bottom: 1px solid var(--line); }
+      .detail-panel:first-child { padding-top: 0; }
+      .detail-panel h2 { margin-bottom: 12px; font-size: 20px; }
+      .detail-panel p { color: var(--muted); font-size: 11px; line-height: 1.6; }
+      .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+      .tag { padding: 6px 8px; border: 1px solid var(--line); color: var(--ink); font-size: 9px; }
+      .analysis-callout {
+        margin: 22px 0 0;
+        padding: 16px 17px;
+        border-left: 3px solid var(--signal);
+        background: var(--soft);
+      }
+      .analysis-callout .mini-label { margin-bottom: 8px; color: var(--accent); }
+      .analysis-callout p { margin: 0; font-family: Georgia, "Iowan Old Style", serif; font-size: 16px; line-height: 1.5; }
+      .disclosure { margin-top: 18px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+      .disclosure summary { padding: 12px 0; color: var(--accent); font-size: 10px; font-weight: 700; cursor: pointer; }
+      .disclosure-content { padding: 0 0 12px; color: var(--muted); font-size: 10px; line-height: 1.55; }
+      .state-content[hidden], .right-state[hidden], .section-index[hidden] { display: none !important; }
+
+      @media (max-width: 1110px) {
+        .workspace { grid-template-columns: 184px minmax(0, 1fr); gap: 28px; width: min(960px, calc(100% - 40px)); }
+        .right-rail { grid-column: 2; padding-top: 0; }
+        .summary-card { position: static; display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, .6fr); gap: 0 20px; }
+        .summary-card .mini-label, .summary-title, .summary-facts, .summary-source, .summary-actions, .info-card { grid-column: 1 / -1; }
+        .summary-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; }
+        .summary-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+      @media (max-width: 720px) {
+        .topbar { min-height: 58px; padding: 0 16px; }
+        .brand-mark { width: 29px; height: 29px; }
+        .brand-name { font-size: 16px; }
+        .demo-label { padding: 5px 6px; font-size: 8px; }
+        .workspace { display: block; width: calc(100% - 32px); padding: 17px 0 48px; }
+        .left-rail { padding: 0 0 12px; border-right: 0; border-bottom: 1px solid var(--line); }
+        .rail-label, .rail-rule, .section-index, .rail-note { display: none; }
+        .flow-nav { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+        .flow-step { grid-template-columns: 21px minmax(0, 1fr); gap: 5px; min-height: 39px; padding: 4px; font-size: 9px; }
+        .step-number { width: 20px; height: 20px; font-size: 8px; }
+        .main-column { padding-top: 17px; }
+        .breadcrumbs { margin-bottom: 18px; }
+        h1 { font-size: 32px; }
+        .right-rail { margin-top: 18px; }
+        .summary-card { display: block; padding: 14px; }
+        .summary-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 15px; }
+        .input-row { grid-template-columns: 1fr; }
+        .source-form .button { width: 100%; }
+        .requirement { grid-template-columns: 1fr; gap: 10px; padding: 12px; }
+        .fact-table { grid-template-columns: 1fr; }
+        .bottom-note { align-items: stretch; flex-direction: column; }
+        .bottom-note .button { width: 100%; }
+      }
+      @media (max-width: 370px) {
+        .product-name, .brand-divider { display: none; }
+        .demo-label { max-width: 104px; text-align: center; }
+        .flow-step { grid-template-columns: 1fr; justify-items: center; min-height: 55px; text-align: center; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="GrowPath, inicio">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40" focusable="false">
+            <path d="M10 30v-7a5 5 0 0 1 5-5h6a5 5 0 0 0 5-5V8" />
+            <circle cx="10" cy="30" r="2.5" />
+            <path d="m22 11 4-4 4 4" />
+          </svg>
+        </span>
+        <span class="brand-name">GrowPath</span>
+        <span class="brand-divider" aria-hidden="true">|</span>
+        <span class="product-name">Analizador de ofertas</span>
+      </a>
+      <span class="demo-label">Mockup · contenido ficticio</span>
+    </header>
+
+    <div class="workspace">
+      <aside class="left-rail">
+        <p class="rail-label">Flujo de lectura</p>
+        <nav class="flow-nav" aria-label="Etapas de GrowPath">
+          <button class="flow-step" type="button" data-stage="source" aria-current="false">
+            <span class="step-number">01</span><span>Leer oferta</span>
+          </button>
+          <button class="flow-step" type="button" data-stage="offer" aria-current="step">
+            <span class="step-number">02</span><span>Revisar requisitos</span>
+          </button>
+          <button class="flow-step" type="button" data-stage="analysis" aria-current="false">
+            <span class="step-number">03</span><span>Ver análisis</span>
+          </button>
+        </nav>
+        <div class="rail-rule"></div>
+        <p class="rail-label">En esta ficha</p>
+        <nav class="section-index" data-index-for="offer" aria-label="Secciones de la oferta">
+          <a href="#requirements">Requisitos</a>
+          <a href="#conditions">Condiciones</a>
+          <a href="#evidence">Citas de la oferta</a>
+        </nav>
+        <nav class="section-index" data-index-for="analysis" aria-label="Secciones del análisis" hidden>
+          <a href="#quick-read">Lectura rápida</a>
+          <a href="#key-quote">Cita clave</a>
+          <a href="#all-citations">Todas las citas</a>
+        </nav>
+        <p class="rail-note">Cada dato conserva el fragmento de la oferta del que salió.</p>
+      </aside>
+
+      <main class="main-column" id="main-content">
+        <div class="breadcrumbs">
+          <span>GrowPath</span><span aria-hidden="true">/</span><span>Oferta de ejemplo</span><span aria-hidden="true">/</span><span id="crumb-current">Requisitos</span>
+        </div>
+        <div id="stage-content"></div>
+      </main>
+
+      <aside class="right-rail" aria-label="Resumen contextual">
+        <section class="summary-card right-state" data-for="source" hidden>
+          <p class="mini-label">Lectura en una página</p>
+          <h2 class="summary-title">De un enlace a una ficha verificable.</h2>
+          <p class="summary-source">La página se mantiene simple: pegas una oferta y revisas sus requisitos junto a las citas que los respaldan.</p>
+          <div class="info-card"><strong>La oferta no se puede leer</strong><p>Pega aquí su descripción. El flujo continúa con el mismo formato de evidencia.</p></div>
+        </section>
+
+        <section class="summary-card right-state" data-for="offer">
+          <p class="mini-label">Ficha de la oferta</p>
+          <h2 class="summary-title">Analista de calidad de datos</h2>
+          <dl class="summary-facts">
+            <div><dt>Empresa</dt><dd>Andes Digital</dd></div>
+            <div><dt>Nivel</dt><dd>Junior</dd></div>
+            <div><dt>Ubicación</dt><dd>Lima, Perú</dd></div>
+            <div><dt>Modalidad</dt><dd>Híbrida</dd></div>
+            <div><dt>Salario</dt><dd>No indicado</dd></div>
+          </dl>
+          <p class="summary-source">Fuente de muestra · LinkedIn · datos ficticios para el mockup.</p>
+          <div class="summary-actions">
+            <button class="button" type="button" data-go="analysis">Ver análisis <span aria-hidden="true">→</span></button>
+            <button class="button secondary" type="button" data-go="source">Cambiar enlace</button>
+          </div>
+        </section>
+
+        <section class="summary-card right-state" data-for="analysis" hidden>
+          <p class="mini-label">Puntos para revisar</p>
+          <h2 class="summary-title">Tres señales con fuente visible.</h2>
+          <dl class="summary-facts">
+            <div><dt>Herramientas</dt><dd>SQL · Python</dd></div>
+            <div><dt>Tipo de trabajo</dt><dd>Calidad de datos</dd></div>
+            <div><dt>Dato ausente</dt><dd>Salario</dd></div>
+          </dl>
+          <div class="info-card"><strong>Sin puntaje automático</strong><p>La lectura explica lo que dice la oferta; tú decides si te conviene.</p></div>
+          <div class="summary-actions">
+            <button class="button secondary" type="button" data-go="offer">Volver a requisitos</button>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <template id="source-template">
+      <header class="page-head">
+        <p class="eyebrow">Paso 1 · Leer oferta</p>
+        <h1>Pega el enlace de una oferta.</h1>
+        <p class="subtitle">Revisa qué pide el puesto y mira las citas que respaldan cada dato.</p>
+      </header>
+      <form class="source-form" id="source-form">
+        <label class="field-label" for="offer-url">Enlace público de la oferta</label>
+        <div class="input-row">
+          <input id="offer-url" type="url" placeholder="https://empresa.com/carreras/..." value="https://www.linkedin.com/jobs/view/0000000000" />
+          <button class="button" type="submit">Leer oferta <span aria-hidden="true">→</span></button>
+        </div>
+        <button class="fallback-link" type="button">¿No abre? Pega la descripción.</button>
+      </form>
+      <section class="article-section">
+        <div class="section-heading"><h2>Qué vas a encontrar</h2><span class="section-count">UNA OFERTA · UNA FICHA</span></div>
+        <p class="subtitle">Requisitos técnicos, condiciones de trabajo y una lectura general. Las citas aparecen junto al hallazgo que explican.</p>
+      </section>
+      <div class="bottom-note"><p>La muestra de este mockup usa un puesto y citas ficticias; no se envía ningún dato.</p><button class="button secondary" type="button" data-go="offer">Ver ficha de ejemplo</button></div>
+    </template>
+
+    <template id="offer-template">
+      <header class="page-head">
+        <p class="eyebrow">Paso 2 · Revisar requisitos</p>
+        <h1>Analista de calidad de datos</h1>
+        <p class="subtitle">Andes Digital · Lima, Perú · modalidad híbrida</p>
+        <div class="source-line"><span class="source-badge">Oferta leída</span><span class="source-url">linkedin.com/jobs/view/0000000000</span><span>·</span><span>muestra ficticia</span></div>
+      </header>
+      <section class="article-section" id="requirements">
+        <div class="section-heading"><h2>Requisitos técnicos</h2><span class="section-count">2 HALLAZGOS</span></div>
+        <div class="requirement-list">
+          <article class="requirement">
+            <div class="requirement-name"><strong>SQL</strong><span>Requisito técnico</span></div>
+            <blockquote class="quote">“Realizar controles y validaciones de calidad de datos mediante consultas en SQL.”<span class="quote-source">Cita de la descripción · requisito técnico</span></blockquote>
+          </article>
+          <article class="requirement">
+            <div class="requirement-name"><strong>Python</strong><span>Requisito técnico</span></div>
+            <blockquote class="quote">“Automatizar revisiones recurrentes con scripts de Python.”<span class="quote-source">Cita de la descripción · requisito técnico</span></blockquote>
+          </article>
+        </div>
+      </section>
+      <section class="article-section" id="conditions">
+        <div class="section-heading"><h2>Condiciones</h2><span class="section-count">3 DATOS DETECTADOS</span></div>
+        <div class="fact-table">
+          <div class="fact"><span>Nivel</span><strong>Junior</strong></div>
+          <div class="fact"><span>Ubicación</span><strong>Lima, Perú</strong></div>
+          <div class="fact"><span>Modalidad</span><strong>Híbrida</strong></div>
+          <div class="fact"><span>Salario</span><strong>No indicado</strong></div>
+        </div>
+      </section>
+      <section class="article-section" id="evidence">
+        <div class="section-heading"><h2>Citas de la oferta</h2><span class="section-count">ORIGEN DE LOS DATOS</span></div>
+        <article class="requirement">
+          <div class="requirement-name"><strong>Calidad</strong><span>Contexto del puesto</span></div>
+          <blockquote class="quote">“El equipo mantiene la calidad de los datos que alimentan los reportes operativos.”<span class="quote-source">Cita de la descripción · contexto</span></blockquote>
+        </article>
+      </section>
+      <div class="bottom-note"><p>Salario no aparece en el texto de muestra; por eso se marca como no indicado.</p><button class="button" type="button" data-go="analysis">Ver análisis <span aria-hidden="true">→</span></button></div>
+    </template>
+
+    <template id="analysis-template">
+      <header class="page-head">
+        <p class="eyebrow">Paso 3 · Ver análisis</p>
+        <h1>Qué pide esta oferta y qué conviene comprobar.</h1>
+        <p class="subtitle">Una lectura breve basada en el texto disponible, con acceso directo a las citas.</p>
+      </header>
+      <section class="detail-panel" id="quick-read">
+        <p class="eyebrow">Lectura rápida</p>
+        <h2>El trabajo se centra en revisar y mejorar datos.</h2>
+        <p>SQL y Python aparecen vinculados a controles de calidad y automatización. La oferta de ejemplo indica modalidad híbrida, pero no publica salario.</p>
+        <div class="tag-list"><span class="tag">SQL · requisito citado</span><span class="tag">Python · requisito citado</span><span class="tag">Salario · no indicado</span></div>
+      </section>
+      <section class="analysis-callout" id="key-quote">
+        <p class="mini-label">La cita que resume el puesto</p>
+        <p>“Realizar controles y validaciones de calidad de datos mediante consultas en SQL.”</p>
+      </section>
+      <section class="detail-panel">
+        <p class="eyebrow">Para tu revisión</p>
+        <h2>Comprueba cómo se mide la calidad.</h2>
+        <p>En una entrevista, podrías preguntar qué controles automatiza el equipo y qué herramientas usan además de SQL y Python. La oferta no especifica un rango salarial.</p>
+      </section>
+      <details class="disclosure" id="all-citations">
+        <summary>Ver todas las citas de la oferta</summary>
+        <div class="disclosure-content">
+          <p><strong>SQL:</strong> “Realizar controles y validaciones de calidad de datos mediante consultas en SQL.”</p>
+          <p><strong>Python:</strong> “Automatizar revisiones recurrentes con scripts de Python.”</p>
+          <p><strong>Contexto:</strong> “El equipo mantiene la calidad de los datos que alimentan los reportes operativos.”</p>
+        </div>
+      </details>
+      <div class="bottom-note"><p>Ejemplo ilustrativo. Las conclusiones solo usan las citas mostradas arriba.</p><button class="button secondary" type="button" data-go="offer">Volver a requisitos</button></div>
+    </template>
+
+    <script>
+      const templates = {
+        source: "source-template",
+        offer: "offer-template",
+        analysis: "analysis-template"
+      };
+      const labels = { source: "Enlace", offer: "Requisitos", analysis: "Análisis" };
+      let activeStage = "offer";
+
+      function render(stage) {
+        activeStage = stage;
+        const template = document.getElementById(templates[stage]);
+        document.getElementById("stage-content").replaceChildren(template.content.cloneNode(true));
+        document.getElementById("crumb-current").textContent = labels[stage];
+        document.querySelectorAll(".flow-step").forEach(function (button) {
+          button.setAttribute("aria-current", button.dataset.stage === stage ? "step" : "false");
+        });
+        document.querySelectorAll(".right-state").forEach(function (panel) {
+          panel.hidden = panel.dataset.for !== stage;
+        });
+        document.querySelectorAll(".section-index").forEach(function (nav) {
+          nav.hidden = nav.dataset.indexFor !== stage;
+        });
+        const form = document.getElementById("source-form");
+        if (form) {
+          form.addEventListener("submit", function (event) {
+            event.preventDefault();
+            render("offer");
+          });
+        }
+        const fallback = document.querySelector(".fallback-link");
+        if (fallback) {
+          fallback.addEventListener("click", function () {
+            const formInput = document.getElementById("offer-url");
+            formInput.placeholder = "Pega aquí el texto de la vacante…";
+            formInput.type = "text";
+            formInput.value = "";
+            formInput.focus();
+          });
+        }
+      }
+
+      document.querySelectorAll(".flow-step").forEach(function (button) {
+        button.addEventListener("click", function () { render(button.dataset.stage); });
+      });
+      document.addEventListener("click", function (event) {
+        const control = event.target.closest("[data-go]");
+        if (control) render(control.dataset.go);
+      });
+      render(activeStage);
+    </script>
+  </body>
+</html>
