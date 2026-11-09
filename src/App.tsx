@@ -1,5 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
-import { FiArrowRight, FiCheck, FiExternalLink } from 'react-icons/fi'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type ReactNode,
+} from 'react'
+import { FiExternalLink } from 'react-icons/fi'
+import { mentionsSkill } from '../shared/skills.mjs'
+import { CvReadError, profileFromSkills, readCvFile, type CvProfile } from './lib/cv'
 
 type TargetRoleId =
   | 'data-analyst'
@@ -9,36 +18,19 @@ type TargetRoleId =
   | 'machine-learning'
   | 'other'
 
-type Profile = {
-  level: 'junior'
-  skills: string[]
-}
-
 type AnalyzeRequest = {
   targetRole: TargetRoleId
-  profile: Profile
+  profile: { level: 'junior'; skills: string[] }
   url?: string
   description?: string
 }
+
+type Evidence = { label: string; text: string }
 
 type AnalysisResult = {
   input: { type: 'url' | 'text'; originalUrl?: string }
   offer?: { title: string | null }
   targetRole: { id: TargetRoleId; label: string }
-  compatibility: {
-    score: number
-    label: string
-    recommendation: string
-    scope: 'profile' | 'target'
-  }
-  factors: {
-    id: string
-    label: string
-    score: number | null
-    weight: number
-    contribution: number
-    detail: string
-  }[]
   requirements: {
     technical: string[]
     preferred: string[]
@@ -47,31 +39,14 @@ type AnalysisResult = {
     workMode: string | null
     salary: string | null
   }
-  profile: { provided: boolean; matched: string[]; gaps: string[] }
-  evidence: { label: string; text: string }[]
-  explanation: string
+  alerts?: { id: string; label: string; text: string }[]
+  evidence: Evidence[]
   limitations: string[]
 }
 
-const analysisSteps = [
-  'Leyendo la oferta.',
-  'Extrayendo requisitos.',
-  'Organizando los hallazgos.',
-  'Generando la explicación.',
-]
-
-const workflowSteps = [
-  { id: 'source', label: 'Leer oferta' },
-  { id: 'offer', label: 'Revisar requisitos' },
-  { id: 'result', label: 'Ver análisis' },
-] as const
-
-type WorkflowPhase = (typeof workflowSteps)[number]['id']
-
 function isHttpUrl(value: string) {
   try {
-    const url = new URL(value)
-    return url.protocol === 'https:'
+    return new URL(value).protocol === 'https:'
   } catch {
     return false
   }
@@ -88,35 +63,21 @@ function parseResult(value: unknown): AnalysisResult {
     !['url', 'text'].includes(result.input?.type) ||
     (result.offer !== undefined &&
       (!result.offer || (result.offer.title !== null && typeof result.offer.title !== 'string'))) ||
-    typeof result.targetRole?.id !== 'string' ||
     typeof result.targetRole?.label !== 'string' ||
-    !Number.isFinite(result.compatibility?.score) ||
-    !['profile', 'target'].includes(result.compatibility?.scope) ||
-    typeof result.compatibility?.label !== 'string' ||
-    typeof result.compatibility?.recommendation !== 'string' ||
-    !Array.isArray(result.factors) ||
-    !result.factors.every(
-      (factor) =>
-        typeof factor.id === 'string' &&
-        typeof factor.label === 'string' &&
-        (factor.score === null || Number.isFinite(factor.score)) &&
-        Number.isFinite(factor.weight) &&
-        Number.isFinite(factor.contribution) &&
-        typeof factor.detail === 'string',
-    ) ||
     !isStringArray(result.requirements?.technical) ||
     !isStringArray(result.requirements?.preferred) ||
-    !isStringArray(result.profile?.matched) ||
-    !isStringArray(result.profile?.gaps) ||
-    typeof result.profile?.provided !== 'boolean' ||
+    (result.alerts !== undefined &&
+      (!Array.isArray(result.alerts) ||
+        !result.alerts.every(
+          (alert) => typeof alert.label === 'string' && typeof alert.text === 'string',
+        ))) ||
     !Array.isArray(result.evidence) ||
     !result.evidence.every(
       (evidence) => typeof evidence.label === 'string' && typeof evidence.text === 'string',
     ) ||
-    typeof result.explanation !== 'string' ||
     !isStringArray(result.limitations)
   ) {
-    throw new Error('Respuesta inválida')
+    throw new Error('Recibimos una respuesta inesperada. Vuelve a intentarlo.')
   }
   return result
 }
@@ -159,17 +120,6 @@ function normalizeOfferUrl(value: string) {
   return value
 }
 
-function listOrEmpty(values: string[], emptyText: string) {
-  if (!values.length) return <p className="empty-list">{emptyText}</p>
-  return (
-    <ul className="result-tags">
-      {values.map((value) => (
-        <li key={value}>{value}</li>
-      ))}
-    </ul>
-  )
-}
-
 function formatList(values: string[]) {
   if (values.length < 2) return values[0] || ''
   if (values.length === 2) return `${values[0]} y ${values[1]}`
@@ -185,172 +135,318 @@ function offerTitle(result: AnalysisResult) {
 
 function careerDirection(result: AnalysisResult) {
   const context = `${offerTitle(result)} ${result.targetRole.label}`.toLocaleLowerCase('es-PE')
-
   if (
     /(?:datos|data)/.test(context) &&
     /(?:inteligencia artificial|machine learning|\bia\b|\bml\b)/.test(context)
-  ) {
+  )
     return 'datos e IA'
-  }
-  if (/(?:datos|data|anal[ií]tica|analytics|business intelligence|\bbi\b)/.test(context)) {
+  if (/(?:datos|data|anal[ií]tica|analytics|business intelligence|\bbi\b)/.test(context))
     return 'datos y analítica'
-  }
-  if (/(?:backend|desarrollador|desarrollo|developer|software)/.test(context)) {
+  if (/(?:backend|desarrollador|desarrollo|developer|software)/.test(context))
     return 'desarrollo de software'
-  }
   if (/(?:cloud|devops|infraestructura)/.test(context)) return 'cloud y DevOps'
-  if (/(?:inteligencia artificial|machine learning|\bia\b|\bml\b)/.test(context)) {
+  if (/(?:inteligencia artificial|machine learning|\bia\b|\bml\b)/.test(context))
     return 'IA y machine learning'
-  }
   return null
 }
 
-function audienceSummary(result: AnalysisResult) {
-  const direction = careerDirection(result)
-  const entryLevel = /practicante|internship|junior/i.test(result.requirements.level || '')
-  if (direction && entryLevel)
-    return `Puede interesarte si ya tienes una base en ${direction} y quieres convertir proyectos de clase o portafolio en experiencia profesional.`
-  if (direction)
-    return `Puede interesarte si buscas trabajar en ${direction} y puedes explicar proyectos relacionados con las tareas de la oferta.`
-  return 'Puede interesarte si las tareas descritas se parecen a tus proyectos y puedes explicar cómo abordarías un problema de ese tipo.'
+function isEntryLevel(result: AnalysisResult) {
+  return /practicante|internship|junior/i.test(result.requirements.level || '')
 }
 
 function quickRead(result: AnalysisResult) {
   const direction = careerDirection(result)
   const technical = result.requirements.technical.slice(0, 3)
-  const entryLevel = /practicante|internship|junior/i.test(result.requirements.level || '')
   const opening = direction
-    ? entryLevel
+    ? isEntryLevel(result)
       ? `Una oportunidad de entrada en ${direction}`
       : `Una oferta orientada a ${direction}`
-    : entryLevel
+    : isEntryLevel(result)
       ? 'Una oportunidad de entrada para ganar experiencia aplicada'
       : 'Una oferta para sumar experiencia práctica'
   return technical.length
-    ? `${opening}, que menciona ${formatList(technical)}. Revisa las tareas para saber cómo se usan en el puesto.`
+    ? `${opening}, que menciona ${formatList(technical)}.`
     : `${opening}. El texto disponible no detalla tecnologías suficientes para valorar el trabajo técnico.`
 }
 
 function offerValue(result: AnalysisResult) {
-  const technical = result.requirements.technical.slice(0, 3)
-  const preferred = result.requirements.preferred.slice(0, 2)
-  const level = result.requirements.level
-  const values: string[] = []
-
-  if (technical.length > 1)
-    values.push(
-      `Reúne ${formatList(technical)} en un mismo puesto; podrás preguntar cómo se combinan en el trabajo diario.`,
-    )
-  else if (technical.length === 1)
-    values.push(
-      `Menciona ${technical[0]} como herramienta técnica concreta para explorar durante la entrevista.`,
-    )
-  if (level && /practicante|internship|junior/i.test(level))
-    values.push(
-      `Indica un nivel de entrada (${level}), útil para valorar si coincide con tu etapa profesional.`,
-    )
-  if (preferred.length) {
-    values.push(
-      `Separa ${formatList(preferred)} como deseable, así puedes distinguir lo esencial de lo que podrías aprender después.`,
-    )
-  }
-  if (!values.length && result.requirements.salary)
-    values.push('Publica el salario, un dato concreto para evaluar las condiciones de la oferta.')
-  return values.length
-    ? values.slice(0, 2)
-    : [
-        'El texto permite ubicar el puesto, aunque faltan detalles para valorar qué experiencia ofrece.',
-      ]
+  const technical = result.requirements.technical.length
+  const preferred = result.requirements.preferred.length
+  if (preferred)
+    return `Separa ${preferred === 1 ? 'una habilidad deseable' : `${preferred} habilidades deseables`} de lo esencial, así sabes qué priorizar.`
+  if (technical > 1)
+    return `Combina ${technical} herramientas en un mismo puesto. Pregunta cómo se usan juntas en el trabajo diario.`
+  if (technical === 1) return 'Se centra en una herramienta concreta que podrás explorar a fondo.'
+  return 'El texto permite ubicar el puesto, aunque faltan detalles para valorar qué experiencia ofrece.'
 }
 
-function whatToDemonstrate(result: AnalysisResult) {
-  const technical = result.requirements.technical.slice(0, 3)
-  const preferred = result.requirements.preferred.slice(0, 2)
-  const actions: string[] = []
+function evidenceFor(name: string, evidence: Evidence[]) {
+  return evidence.find((item) => mentionsSkill(name, item.text))?.text ?? null
+}
 
-  if (technical.length) {
-    actions.push(
-      `Elige un proyecto donde hayas usado ${formatList(technical.slice(0, 2))} y cuenta qué problema resolviste.`,
+function cvSkill(name: string, cv: CvProfile | null) {
+  return cv?.skills.find((skill) => skill.name === name) ?? null
+}
+
+function genericDemonstration(result: AnalysisResult) {
+  const technical = result.requirements.technical.slice(0, 2)
+  return technical.length
+    ? `Elige un proyecto donde hayas usado ${formatList(technical)} y cuenta qué problema resolviste.`
+    : 'Lleva un proyecto relacionado con el puesto y pregunta qué tareas asumirías al empezar.'
+}
+
+function personalDemonstration(result: AnalysisResult, cv: CvProfile) {
+  const { technical } = result.requirements
+  const owned = technical.map((name) => cvSkill(name, cv)).filter((skill) => skill !== null)
+  const names = owned.slice(0, 3).map((skill) => skill.name)
+  if (!owned.length)
+    return 'Tu CV no menciona lo que piden. Lleva el proyecto más cercano que tengas y explica qué aprendiste.'
+  if (cv.source === 'manual')
+    return `Elige un proyecto donde hayas usado ${formatList(names.slice(0, 2))} y cuenta qué problema resolviste.`
+  const coverage = (line: string) => technical.filter((name) => mentionsSkill(name, line))
+  const best = owned
+    .flatMap((skill) => (skill.example && skill.line ? [skill.line] : []))
+    .sort((first, second) => coverage(second).length - coverage(first).length)[0]
+  return best
+    ? `Tu mejor ejemplo es «${best}». Conecta con ${formatList(coverage(best))}: cuenta qué problema resolviste y qué resultado obtuviste.`
+    : `Tu CV nombra ${formatList(names)}, pero no muestra cómo los usaste. Prepara un caso concreto: qué problema tenías, qué hiciste y qué resultado obtuviste.`
+}
+
+function Logo() {
+  return (
+    <a className="brand" href="/" aria-label="Ir al inicio de GrowPath">
+      <img src="/gpath-mark.svg" alt="" width="34" height="34" />
+      <span className="brand-name">GrowPath</span>
+    </a>
+  )
+}
+
+function CvPicker({
+  id,
+  cv,
+  reading,
+  error,
+  onFile,
+  onSkills,
+  onRemove,
+}: {
+  id: string
+  cv: CvProfile | null
+  reading: boolean
+  error: string
+  onFile: (file: File) => void
+  onSkills: (value: string) => void
+  onRemove: () => void
+}) {
+  const [writing, setWriting] = useState(false)
+  const [skills, setSkills] = useState('')
+
+  if (cv)
+    return (
+      <div className="cv-loaded">
+        <span className="cv-name">{cv.label}</span>
+        <button className="ghost-action" type="button" onClick={onRemove}>
+          Quitar
+        </button>
+      </div>
     )
-    if (technical.length > 2)
-      actions.push(
-        `Repasa ${technical[2]} y prepara una pregunta sobre cómo se usa en este equipo.`,
-      )
-    else actions.push('Explica una decisión que tomaste con los datos y qué resultado obtuviste.')
-  }
-  if (preferred.length && actions.length < 2)
-    actions.push(
-      `Si conoces ${formatList(preferred)}, ten un ejemplo; si no, pregunta si se aprende en el puesto.`,
-    )
-  return actions.length
-    ? actions.slice(0, 2)
-    : ['Lleva un proyecto relacionado con el puesto y pregunta qué tareas asumirías al empezar.']
+
+  return (
+    <div className="cv-picker">
+      <input
+        className="visually-hidden"
+        id={id}
+        type="file"
+        accept="application/pdf,.pdf"
+        disabled={reading}
+        onChange={(event: ChangeEvent<HTMLInputElement>) => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          if (file) onFile(file)
+        }}
+      />
+      <label className="cv-drop" htmlFor={id}>
+        {reading ? 'Leyendo tu CV…' : 'Elegir PDF'}
+      </label>
+      <button
+        className="text-action"
+        type="button"
+        disabled={reading}
+        onClick={() => setWriting((visible) => !visible)}
+      >
+        {writing ? 'Ocultar' : 'Prefiero escribir mis habilidades'}
+      </button>
+      {writing && (
+        <div className="cv-skills">
+          <label htmlFor={`${id}-skills`}>Tus habilidades, separadas por comas</label>
+          <div className="input-row">
+            <input
+              id={`${id}-skills`}
+              value={skills}
+              placeholder="SQL, Excel, Python"
+              onChange={(event) => setSkills(event.target.value)}
+            />
+            <button
+              className="ghost-action"
+              type="button"
+              disabled={!skills.trim()}
+              onClick={() => onSkills(skills)}
+            >
+              Usar
+            </button>
+          </div>
+        </div>
+      )}
+      {error && (
+        <p className="cv-error" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function Requirement({
+  name,
+  kind,
+  quote,
+  cv,
+  open,
+  onToggle,
+}: {
+  name: string
+  kind: string
+  quote: string | null
+  cv: CvProfile | null
+  open: boolean
+  onToggle: () => void
+}) {
+  const owned = cvSkill(name, cv)
+  return (
+    <li className="requirement">
+      <button aria-expanded={open} type="button" onClick={onToggle}>
+        <span className="requirement-name">
+          {name} <small>{kind}</small>
+        </span>
+        {cv ? (
+          <span className={`status ${owned ? 'has' : 'missing'}`}>
+            <span aria-hidden="true">{owned ? '✓ ' : '○ '}</span>
+            {owned ? 'Lo tienes' : 'Te falta'}
+          </span>
+        ) : (
+          <span className="see-quote">{open ? 'Ocultar cita' : 'Ver cita'}</span>
+        )}
+      </button>
+      {open && (
+        <div className="requirement-quotes">
+          <p>
+            <strong>En la oferta:</strong>{' '}
+            {quote ? <mark>{quote}</mark> : 'Detectado en el texto, sin cita disponible.'}
+          </p>
+          {cv && (
+            <p>
+              <strong>{cv.source === 'pdf' ? 'En tu CV:' : 'Tus habilidades:'}</strong>{' '}
+              {!owned ? 'no lo encontramos.' : (owned.line ?? 'lo indicaste tú.')}
+            </p>
+          )}
+        </div>
+      )}
+    </li>
+  )
+}
+
+function Stop({
+  number,
+  title,
+  aside,
+  last = false,
+  children,
+}: {
+  number: number
+  title: string
+  aside?: string
+  last?: boolean
+  children: ReactNode
+}) {
+  return (
+    <li className={`stop ${last ? 'last' : ''}`}>
+      <div className="stop-rail" aria-hidden="true">
+        <span>{number}</span>
+      </div>
+      <section className="stop-body" aria-labelledby={`stop-${number}`}>
+        <div className="stop-heading">
+          <h2 id={`stop-${number}`}>{title}</h2>
+          {aside && <span>{aside}</span>}
+        </div>
+        {children}
+      </section>
+    </li>
+  )
 }
 
 export default function App() {
   const [url, setUrl] = useState('')
   const [description, setDescription] = useState('')
   const [showManualDescription, setShowManualDescription] = useState(false)
-  const [phase, setPhase] = useState<WorkflowPhase>('source')
-  const [inspection, setInspection] = useState<AnalysisResult | null>(null)
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [lastRequest, setLastRequest] = useState<AnalyzeRequest | null>(null)
-  const [lastPhase, setLastPhase] = useState<Exclude<WorkflowPhase, 'source'> | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [cv, setCv] = useState<CvProfile | null>(null)
+  const [cvReading, setCvReading] = useState(false)
+  const [cvError, setCvError] = useState('')
+  const [openRequirement, setOpenRequirement] = useState<string | null>(null)
   const request = useRef<AbortController | null>(null)
+  const routeTitle = useRef<HTMLHeadingElement | null>(null)
 
   const validation = sourceValidation(url, description)
-  const canSubmitSource = !loading && !validation && phase === 'source'
+  const canSubmit = !loading && !cvReading && !validation
   const hasUrl = Boolean(url.trim())
   const hasDescription = Boolean(description.trim())
   const sourceWarning = (hasUrl || hasDescription) && validation ? validation : ''
-  const originalUrl =
-    result?.input.type === 'url' ? safeExternalUrl(result.input.originalUrl) : null
-  const inspectionFacts = inspection
-    ? [
-        { label: 'Nivel', value: inspection.requirements.level },
-        { label: 'Ubicación', value: inspection.requirements.location },
-        { label: 'Modalidad', value: inspection.requirements.workMode },
-        { label: 'Salario', value: inspection.requirements.salary },
-      ].filter((fact): fact is { label: string; value: string } => Boolean(fact.value))
-    : []
 
-  useEffect(
-    () => () => {
-      request.current?.abort()
-    },
-    [],
-  )
+  useEffect(() => () => request.current?.abort(), [])
 
-  function requestFromSource(): AnalyzeRequest | null {
-    if (validation) return null
-    const common = {
-      // The role and profile controls are intentionally out of this general
-      // analysis. The API keeps these stable fallbacks for compatibility.
-      targetRole: 'other' as const,
-      profile: { level: 'junior' as const, skills: [] },
+  useEffect(() => {
+    if (result) routeTitle.current?.focus()
+  }, [result])
+
+  async function addCvFile(file: File) {
+    setCvReading(true)
+    setCvError('')
+    try {
+      setCv(await readCvFile(file))
+    } catch (reason) {
+      setCvError(
+        reason instanceof CvReadError
+          ? reason.message
+          : 'No pudimos leer tu CV. Prueba con otro PDF o escribe tus habilidades.',
+      )
+    } finally {
+      setCvReading(false)
     }
-    return hasUrl
-      ? { ...common, url: normalizeOfferUrl(url.trim()) }
-      : { ...common, description: description.trim() }
   }
 
-  async function analyze(input: AnalyzeRequest, nextPhase: Exclude<WorkflowPhase, 'source'>) {
+  function addSkills(value: string) {
+    setCvError('')
+    try {
+      setCv(profileFromSkills(value))
+    } catch (reason) {
+      setCvError(reason instanceof CvReadError ? reason.message : 'Revisa lo que escribiste.')
+    }
+  }
+
+  async function analyze(input: AnalyzeRequest) {
     request.current?.abort()
     const controller = new AbortController()
     request.current = controller
-    const loadingStartedAt = performance.now()
-    const minimumLoadingMs = 900
+    const startedAt = performance.now()
     setLastRequest(input)
-    setLastPhase(nextPhase)
     setLoading(true)
     setError('')
     const timeout = window.setTimeout(() => controller.abort(), 40_000)
-    let outcome:
-      | { type: 'success'; payload: ReturnType<typeof parseResult> }
-      | { type: 'error'; message: string }
-      | null = null
+    let payload: AnalysisResult | null = null
+    let message = ''
     try {
       const response = await fetch('/api/analyze', {
         method: 'POST',
@@ -366,69 +462,48 @@ export default function App() {
             : 'No pudimos analizar la oferta. Vuelve a intentarlo.',
         )
       }
-      const payload = parseResult(await response.json())
-      outcome = { type: 'success', payload }
+      payload = parseResult(await response.json())
     } catch (reason) {
-      outcome = {
-        type: 'error',
-        message:
-          reason instanceof Error && reason.message
-            ? reason.message
-            : 'No pudimos analizar la oferta. Comprueba el enlace o pega la descripción y vuelve a intentarlo.',
-      }
+      message =
+        reason instanceof Error && reason.message && reason.name !== 'AbortError'
+          ? reason.message
+          : 'La lectura tardó demasiado. Comprueba el enlace o pega la descripción y vuelve a intentarlo.'
     } finally {
       window.clearTimeout(timeout)
-      const remainingLoadingMs = minimumLoadingMs - (performance.now() - loadingStartedAt)
-      if (request.current === controller && remainingLoadingMs > 0)
-        await new Promise((resolve) => window.setTimeout(resolve, remainingLoadingMs))
-      if (request.current === controller) {
-        if (outcome?.type === 'success') {
-          if (nextPhase === 'offer') {
-            setInspection(outcome.payload)
-            setResult(null)
-            setPhase('offer')
-          } else {
-            setResult(outcome.payload)
-            setPhase('result')
-          }
-        } else if (outcome?.type === 'error') {
-          setError(outcome.message)
-        }
-        setLoading(false)
-      }
     }
+    const remaining = 900 - (performance.now() - startedAt)
+    if (remaining > 0) await new Promise((resolve) => window.setTimeout(resolve, remaining))
+    if (request.current !== controller) return
+    if (payload) {
+      setResult(payload)
+      setOpenRequirement(payload.requirements.technical[0] ?? null)
+    } else setError(message)
+    setLoading(false)
   }
 
-  function submitSource(event: React.FormEvent<HTMLFormElement>) {
+  function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const input = requestFromSource()
-    if (!input) {
-      setError(validation)
-      return
+    if (validation) return setError(validation)
+    const common = {
+      // The CV is compared in this tab, so its skills are never sent.
+      targetRole: 'other' as const,
+      profile: { level: 'junior' as const, skills: [] },
     }
-    void analyze(input, 'offer')
+    void analyze(
+      hasUrl
+        ? { ...common, url: normalizeOfferUrl(url.trim()) }
+        : { ...common, description: description.trim() },
+    )
   }
 
-  function hasSavedOffer() {
-    return Boolean(inspection || result)
-  }
-
-  function goToWorkflowStep(nextPhase: WorkflowPhase) {
-    if (loading) return
-    if (nextPhase !== 'source' && !hasSavedOffer()) return
-
+  function readAnotherOffer() {
+    request.current?.abort()
+    setUrl('')
+    setDescription('')
+    setShowManualDescription(false)
+    setResult(null)
+    setLastRequest(null)
     setError('')
-    if (nextPhase === 'offer') {
-      if (!inspection && result) setInspection(result)
-      setPhase('offer')
-      return
-    }
-    if (nextPhase === 'result') {
-      if (!result && inspection) setResult(inspection)
-      setPhase('result')
-      return
-    }
-    setPhase('source')
   }
 
   function updateSource(kind: 'url' | 'description', value: string) {
@@ -439,306 +514,331 @@ export default function App() {
       setDescription(value)
       if (value.trim()) setUrl('')
     }
-    setInspection(null)
-    setResult(null)
-    setPhase('source')
     setError('')
   }
 
-  const activeStepIndex = workflowSteps.findIndex((step) => step.id === phase)
-
-  function workflowStepClass(step: WorkflowPhase, index: number) {
-    if (step === phase) return 'current'
-    if (index < activeStepIndex) return 'done'
-    if (hasSavedOffer() && index === activeStepIndex + 1) return 'next'
-    return hasSavedOffer() ? 'ready' : ''
-  }
-
-  return (
-    <div className="shell">
-      <header className="topbar">
-        <div className="brand-block">
-          <a className="brand" href="/" aria-label="Ir al inicio de GrowPath">
-            <span className="brand-mark" aria-hidden="true">
-              <img src="/gpath-mark.svg" alt="" />
-            </span>
-            <span className="brand-name">GrowPath</span>
-            <span className="brand-divider" aria-hidden="true">
-              |
-            </span>
-            <span className="brand-product">Analizador de ofertas</span>
-          </a>
-        </div>
-      </header>
-
-      <main className={phase === 'source' ? 'source-screen' : 'review-screen'}>
-        <nav className="workflow-nav" aria-label="Pasos del análisis">
+  if (loading)
+    return (
+      <div className="loading-screen">
+        <section className="loading" aria-label="Progreso del análisis">
+          <h1 role="status" aria-live="polite">
+            Estamos armando tu ruta
+          </h1>
           <ol>
-            {workflowSteps.map((step, index) => (
-              <li key={step.id}>
-                <button
-                  aria-current={step.id === phase ? 'step' : undefined}
-                  aria-label={`Ir a ${step.label}`}
-                  className={`workflow-step ${workflowStepClass(step.id, index)}`}
-                  disabled={loading || (step.id !== 'source' && !hasSavedOffer())}
-                  onClick={() => goToWorkflowStep(step.id)}
-                  type="button"
-                >
-                  <span className="step-number" aria-hidden="true">
-                    {index < activeStepIndex ? <FiCheck /> : String(index + 1).padStart(2, '0')}
-                  </span>
-                  <span>{step.label}</span>
-                </button>
+            {cv && (
+              <li className="done">
+                <span aria-hidden="true">✓</span>Tu CV está listo en esta pestaña
               </li>
-            ))}
+            )}
+            <li className="current">
+              <span aria-hidden="true" />
+              Leyendo la oferta y buscando señales de estafa
+            </li>
           </ol>
-        </nav>
+          <p>Puede tardar hasta un minuto si la oferta es larga.</p>
+        </section>
+      </div>
+    )
 
-        <section
-          className={`workflow-card ${phase === 'result' ? 'analysis-card' : ''}`}
-          id="analizador"
-          aria-busy={loading}
-        >
-          {phase === 'source' && (
-            <section className="step-view" aria-labelledby="source-title">
-              <div className="source-entry">
-                <div className="source-intro">
-                  <h1 id="source-title">Pega el enlace de una oferta.</h1>
-                  <p className="source-promise" id="source-help">
-                    Cada requisito aparecerá junto a la cita que lo respalda.
-                  </p>
-                </div>
+  if (result) {
+    const facts = [
+      result.requirements.level,
+      result.requirements.location,
+      result.requirements.workMode,
+      result.requirements.salary,
+    ].filter(Boolean)
+    const alerts = result.alerts ?? []
+    const { technical, preferred } = result.requirements
+    const ownedTechnical = technical.filter((name) => cvSkill(name, cv)).length
+    const missingTechnical = technical.filter((name) => !cvSkill(name, cv))
+    const missingPreferred = preferred.filter((name) => !cvSkill(name, cv))
+    const originalUrl =
+      result.input.type === 'url' ? safeExternalUrl(result.input.originalUrl) : null
+    const rows = [
+      ...technical.map((name) => ({ name, kind: 'Técnico' })),
+      ...preferred.map((name) => ({ name, kind: 'Deseable' })),
+    ]
 
-                <form className="analyze-form" onSubmit={submitSource}>
-                  <label className="field-label" htmlFor="offer-url">
-                    Enlace de la oferta
-                  </label>
-                  <div className="source-input-row">
-                    <input
-                      id="offer-url"
-                      type="url"
-                      inputMode="url"
-                      placeholder="https://empresa.com/carreras/..."
-                      value={url}
-                      disabled={loading || hasDescription}
-                      aria-describedby={sourceWarning ? 'source-help source-warning' : 'source-help'}
-                      aria-invalid={Boolean(sourceWarning)}
-                      onChange={(event) => updateSource('url', event.target.value)}
-                    />
-                    <button className="primary-action" disabled={!canSubmitSource} type="submit">
-                      {loading ? 'Leyendo…' : 'Leer oferta'}
-                      <FiArrowRight aria-hidden="true" />
-                    </button>
-                  </div>
-
-                  <button
-                    className="manual-source-toggle"
-                    type="button"
-                    disabled={loading}
-                    onClick={() => setShowManualDescription((visible) => !visible)}
-                  >
-                    {showManualDescription
-                      ? 'Ocultar descripción'
-                      : '¿No abre? Pega la descripción.'}
-                  </button>
-
-                  {showManualDescription && (
-                    <div className="manual-source">
-                      <label className="field-label" htmlFor="offer-description">
-                        Descripción de la oferta
-                      </label>
-                      <textarea
-                        id="offer-description"
-                        rows={7}
-                        placeholder="Pega aquí el texto de la vacante tal como lo encontraste."
-                        value={description}
-                        disabled={loading || hasUrl}
-                        aria-describedby={sourceWarning ? 'source-help source-warning' : 'source-help'}
-                        aria-invalid={Boolean(sourceWarning)}
-                        onChange={(event) => updateSource('description', event.target.value)}
-                      />
-                    </div>
-                  )}
-
-                  {sourceWarning && (
-                    <p className="source-help has-warning" id="source-warning" role="alert">
-                      {sourceWarning}
-                    </p>
-                  )}
-                </form>
-              </div>
-            </section>
-          )}
-
-          {phase === 'offer' && inspection && (
-            <section className="step-view offer-review" aria-labelledby="offer-title">
-              <header className="offer-review-heading">
-                <div>
-                  <h1 id="offer-title">
-                    {inspection.offer?.title || 'Puesto no identificado'}
-                  </h1>
-                  <p className="step-intro">Revisa los datos y sus citas antes de continuar.</p>
-                </div>
-              </header>
-
-              <div className="offer-evidence-layout">
-                <div className="offer-facts">
-                  <section className="review-group" aria-labelledby="detected-requirements-title">
-                    <h2 id="detected-requirements-title">Requisitos técnicos</h2>
-                    {listOrEmpty(
-                      inspection.requirements.technical,
-                      'No se identificaron requisitos técnicos claros.',
-                    )}
-                  </section>
-
-                  {inspection.requirements.preferred.length > 0 && (
-                    <section className="review-group" aria-labelledby="preferred-requirements-title">
-                      <h2 id="preferred-requirements-title">Deseables</h2>
-                      {listOrEmpty(inspection.requirements.preferred, '')}
-                    </section>
-                  )}
-
-                  {inspectionFacts.length > 0 && (
-                    <section className="review-group" aria-labelledby="detected-details-title">
-                      <h2 id="detected-details-title">Condiciones</h2>
-                      <dl className="offer-fact-list">
-                        {inspectionFacts.map((fact) => (
-                          <div key={fact.label}>
-                            <dt>{fact.label}</dt>
-                            <dd>{fact.value}</dd>
-                          </div>
-                        ))}
-                      </dl>
-                    </section>
-                  )}
-                </div>
-
-                <aside
-                  className="inspection-evidence evidence-section"
-                  aria-labelledby="evidence-title"
-                >
-                  <h2 id="evidence-title">Citas de la oferta</h2>
-                  {inspection.evidence.length ? (
-                    <ul>
-                      {inspection.evidence.map((evidence) => (
-                        <li key={`${evidence.label}-${evidence.text}`}>
-                          <strong>{evidence.label}</strong>
-                          <blockquote>{evidence.text}</blockquote>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="empty-list">No hay citas textuales disponibles.</p>
-                  )}
-                </aside>
-              </div>
-            </section>
-          )}
-
-          {loading && (
-            <section className="progress-panel" aria-label="Progreso del análisis">
-              <p role="status" aria-live="polite">
-                Leyendo y organizando la oferta.
-              </p>
-              <ol>
-                {analysisSteps.map((step, index) => (
-                  <li className={index === 0 ? 'current' : ''} key={step}>
-                    <span aria-hidden="true">{index === 0 ? '•' : '○'}</span>
-                    {step}
-                  </li>
-                ))}
-              </ol>
-            </section>
-          )}
-
-          {error && (
-            <div className="error-message" role="alert">
-              <p>{error}</p>
-              {result && <p>Se mantiene el último resultado mientras vuelves a intentarlo.</p>}
-              {lastRequest && lastPhase && !loading && (
-                <button
-                  className="retry-button"
-                  type="button"
-                  onClick={() => void analyze(lastRequest, lastPhase)}
-                >
-                  Reintentar lectura
-                </button>
-              )}
+    return (
+      <div className="page">
+        <section className="band route-band">
+          <div className="band-inner">
+            <header className="topbar">
+              <Logo />
+              <button className="ghost-action" type="button" onClick={readAnotherOffer}>
+                Leer otra oferta
+              </button>
+            </header>
+            <div className="route-title">
+              <h1 ref={routeTitle} tabIndex={-1}>
+                {offerTitle(result)}
+              </h1>
+              {facts.length > 0 && <p>{facts.join(' · ')}</p>}
             </div>
-          )}
-
-          {phase === 'result' && result && (
-            <section className="analysis-result" aria-labelledby="analysis-result-title">
-              <header className="analysis-heading">
-                <h1 id="analysis-result-title">{offerTitle(result)}</h1>
-                <div className="analysis-meta" aria-label="Datos detectados de la oferta">
-                  {result.requirements.level && <span>{result.requirements.level}</span>}
-                  {result.requirements.location && <span>{result.requirements.location}</span>}
-                  {result.requirements.workMode && <span>{result.requirements.workMode}</span>}
-                </div>
-              </header>
-
-              <section className="analysis-takeaway" aria-labelledby="takeaway-title">
-                <h3 id="takeaway-title">La lectura rápida</h3>
-                <p>{quickRead(result)}</p>
-              </section>
-
-              <div className="analysis-guidance">
-                <section className="guidance-panel" aria-labelledby="audience-title">
-                  <h3 id="audience-title">Para quién encaja</h3>
-                  <p>{audienceSummary(result)}</p>
-                </section>
-                <section className="guidance-panel" aria-labelledby="value-title">
-                  <h3 id="value-title">Qué te aporta</h3>
-                  <ul>
-                    {offerValue(result).map((value) => (
-                      <li key={value}>{value}</li>
-                    ))}
-                  </ul>
-                </section>
-                <section className="guidance-panel" aria-labelledby="demonstrate-title">
-                  <h3 id="demonstrate-title">Qué demostrar</h3>
-                  <ul>
-                    {whatToDemonstrate(result).map((action) => (
-                      <li key={action}>{action}</li>
-                    ))}
-                  </ul>
-                </section>
+            {cv && (
+              <div className="cv-strip">
+                <span>
+                  Comparado con <strong>{cv.label}</strong>. Se borra al cerrar o recargar esta
+                  pestaña.
+                </span>
+                <button className="text-action" type="button" onClick={() => setCv(null)}>
+                  Borrar mi CV ahora
+                </button>
               </div>
+            )}
+          </div>
+        </section>
 
-              {result.evidence.length > 0 && (
-                <details className="analysis-citations">
-                  <summary>Ver citas de la oferta</summary>
+        <main className="route">
+          <ol className="stops">
+            <Stop number={1} title="¿Es confiable?">
+              {alerts.length ? (
+                <div className="alerts">
+                  <p className="alerts-title">
+                    Encontramos {alerts.length} {alerts.length === 1 ? 'señal' : 'señales'} de
+                    posible estafa
+                  </p>
                   <ul>
-                    {result.evidence.map((evidence) => (
-                      <li key={`${evidence.label}-${evidence.text}`}>
-                        <strong>{evidence.label}</strong>
-                        <blockquote>{evidence.text}</blockquote>
+                    {alerts.map((alert) => (
+                      <li key={alert.label}>
+                        <strong>{alert.label}</strong>
+                        <blockquote>«{alert.text}»</blockquote>
                       </li>
                     ))}
                   </ul>
-                </details>
+                  <p>
+                    No pagues ni envíes tu DNI hasta confirmar la oferta en la web oficial de la
+                    empresa.
+                  </p>
+                </div>
+              ) : (
+                <p>
+                  No encontramos pedidos de pago ni de datos sensibles en el texto. Eso no garantiza
+                  que la oferta sea real: confirma la empresa antes de enviar tus datos.
+                </p>
               )}
+            </Stop>
 
-              {result.limitations.length > 0 && (
-                <details className="analysis-limits">
-                  <summary>Alcance de esta lectura</summary>
-                  <ul>
-                    {result.limitations.map((limitation) => (
-                      <li key={limitation}>{limitation}</li>
-                    ))}
+            <Stop
+              number={2}
+              title="Lo que piden"
+              aside={
+                cv && technical.length
+                  ? `Tienes ${ownedTechnical} de ${technical.length} técnicos`
+                  : undefined
+              }
+            >
+              {rows.length ? (
+                <ul className="requirements">
+                  {rows.map(({ name, kind }) => (
+                    <Requirement
+                      key={name}
+                      name={name}
+                      kind={kind}
+                      quote={evidenceFor(name, result.evidence)}
+                      cv={cv}
+                      open={openRequirement === name}
+                      onToggle={() =>
+                        setOpenRequirement((current) => (current === name ? null : name))
+                      }
+                    />
+                  ))}
+                </ul>
+              ) : (
+                <p>No identificamos requisitos técnicos claros en el texto.</p>
+              )}
+            </Stop>
+
+            <Stop number={3} title="Lo que te falta">
+              {cv ? (
+                missingTechnical.length || missingPreferred.length ? (
+                  <ul className="plain-list">
+                    {missingTechnical.length > 0 && (
+                      <li>
+                        <strong>{formatList(missingTechnical)}</strong>{' '}
+                        {missingTechnical.length === 1
+                          ? 'es requisito y aún no lo muestras. Prepara un ejemplo pequeño para explicarlo en la entrevista.'
+                          : `son requisitos que aún no muestras. Empieza por ${missingTechnical[0]}: prepara un ejemplo pequeño para la entrevista.`}
+                      </li>
+                    )}
+                    {missingPreferred.length > 0 && (
+                      <li>
+                        <strong>{formatList(missingPreferred)}</strong>{' '}
+                        {missingPreferred.length === 1
+                          ? 'es deseable. Pregunta si se aprende en el puesto.'
+                          : 'son deseables. Pregunta si se aprenden en el puesto.'}
+                      </li>
+                    )}
                   </ul>
-                </details>
+                ) : (
+                  <p>Cubres todo lo que detectamos en la oferta.</p>
+                )
+              ) : (
+                <div className="route-cv">
+                  <p>
+                    Agrega tu CV y te mostramos qué requisitos ya cumples. Se queda en tu navegador.
+                  </p>
+                  <CvPicker
+                    id="route-cv"
+                    cv={cv}
+                    reading={cvReading}
+                    error={cvError}
+                    onFile={addCvFile}
+                    onSkills={addSkills}
+                    onRemove={() => setCv(null)}
+                  />
+                </div>
               )}
+            </Stop>
 
-              {originalUrl && (
-                <a className="original-link" href={originalUrl} target="_blank" rel="noreferrer">
+            <Stop number={4} title="Qué demostrar">
+              <p>{cv ? personalDemonstration(result, cv) : genericDemonstration(result)}</p>
+            </Stop>
+
+            <Stop number={5} title="Postula" last>
+              {originalUrl ? (
+                <a className="primary-link" href={originalUrl} target="_blank" rel="noreferrer">
                   Ver oferta original <FiExternalLink aria-hidden="true" />
                 </a>
+              ) : (
+                <p>Pegaste esta oferta a mano. Postula desde la página donde la encontraste.</p>
               )}
+            </Stop>
+          </ol>
+
+          <aside className="route-aside">
+            <section>
+              <h2>La lectura rápida</h2>
+              <p>{quickRead(result)}</p>
             </section>
-          )}
-        </section>
+            <section>
+              <h2>Qué te aporta</h2>
+              <p>{offerValue(result)}</p>
+            </section>
+            <section>
+              <h2>Tus datos</h2>
+              <p>
+                No necesitas cuenta. Tu CV se lee en esta pestaña y no se envía a nuestro servidor.
+              </p>
+            </section>
+            {result.limitations.length > 0 && (
+              <details className="limits">
+                <summary>Alcance de esta lectura</summary>
+                <ul>
+                  {result.limitations.map((limitation) => (
+                    <li key={limitation}>{limitation}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </aside>
+        </main>
+      </div>
+    )
+  }
+
+  return (
+    <div className="page">
+      <section className="band">
+        <div className="band-inner home">
+          <header className="topbar">
+            <Logo />
+            <span className="brand-product">Ruta para postular</span>
+          </header>
+          <h1>¿Vas a postular? Pega la oferta.</h1>
+          <form className="home-form" onSubmit={submit}>
+            <div className="field">
+              <label htmlFor="offer-url">Enlace de la oferta</label>
+              <input
+                id="offer-url"
+                type="url"
+                inputMode="url"
+                placeholder="https://empresa.com/carreras/..."
+                value={url}
+                disabled={hasDescription}
+                aria-describedby={sourceWarning ? 'source-warning' : undefined}
+                aria-invalid={Boolean(sourceWarning)}
+                onChange={(event) => updateSource('url', event.target.value)}
+              />
+              <button
+                className="text-action"
+                type="button"
+                onClick={() => setShowManualDescription((visible) => !visible)}
+              >
+                {showManualDescription ? 'Ocultar descripción' : '¿No abre? Pega la descripción.'}
+              </button>
+              {showManualDescription && (
+                <>
+                  <label htmlFor="offer-description">Descripción de la oferta</label>
+                  <textarea
+                    id="offer-description"
+                    rows={7}
+                    placeholder="Pega aquí el texto de la vacante tal como lo encontraste."
+                    value={description}
+                    disabled={hasUrl}
+                    aria-describedby={sourceWarning ? 'source-warning' : undefined}
+                    aria-invalid={Boolean(sourceWarning)}
+                    onChange={(event) => updateSource('description', event.target.value)}
+                  />
+                </>
+              )}
+              {sourceWarning && (
+                <p className="form-warning" id="source-warning" role="alert">
+                  {sourceWarning}
+                </p>
+              )}
+            </div>
+
+            <div className="field">
+              <span className="field-title">
+                Tu CV <small>(opcional, para ver lo que te falta)</small>
+              </span>
+              <CvPicker
+                id="home-cv"
+                cv={cv}
+                reading={cvReading}
+                error={cvError}
+                onFile={addCvFile}
+                onSkills={addSkills}
+                onRemove={() => setCv(null)}
+              />
+              <p className="field-note">
+                Se lee en tu navegador y no se envía a nuestro servidor. Se borra al cerrar o
+                recargar esta pestaña. PDF de hasta 2 MB.
+              </p>
+            </div>
+
+            {error && (
+              <div className="form-error" role="alert">
+                <p>{error}</p>
+                {lastRequest && (
+                  <button
+                    className="ghost-action"
+                    type="button"
+                    onClick={() => void analyze(lastRequest)}
+                  >
+                    Reintentar lectura
+                  </button>
+                )}
+              </div>
+            )}
+
+            <button className="primary-action" disabled={!canSubmit} type="submit">
+              Ver mi ruta
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <main className="preview">
+        <h2>Tu ruta tendrá cinco paradas</h2>
+        <ol>
+          <li>¿Es confiable?</li>
+          <li>Lo que piden</li>
+          <li>Lo que te falta</li>
+          <li>Qué demostrar</li>
+          <li>Postula</li>
+        </ol>
       </main>
     </div>
   )

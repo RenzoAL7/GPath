@@ -2,8 +2,8 @@
 
 ## Release Explorer
 
-Usa React, React DOM, React Icons y las fuentes Space Grotesk, IBM Plex Sans e
-IBM Plex Mono empaquetadas con Fontsource. La compilación copia sus licencias
+Usa React, React DOM, React Icons, PDF.js y las fuentes Sora y Public Sans
+empaquetadas con Fontsource. La compilación copia sus licencias
 desde los paquetes instalados a `public/licenses/` y las distribuye junto al sitio.
 Las fuentes se sirven localmente; no se solicitan a Google Fonts.
 

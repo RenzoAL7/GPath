@@ -11,7 +11,7 @@ RUN npm run build:web
 
 FROM node:22-alpine AS api
 WORKDIR /app
-ENV NODE_ENV=production PORT=8081 RUNTIME_ENV=container
+ENV NODE_ENV=production PORT=8081 RUNTIME_ENV=container CLIENT_IP_HEADER=cf-connecting-ip
 COPY --chown=node:node server ./server
 COPY --chown=node:node shared ./shared
 COPY --chown=node:node public/release.json ./public/release.json

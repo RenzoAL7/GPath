@@ -4,6 +4,7 @@ import {
   calculateCompatibility,
   cleanOfferText,
   createOfferAnalyzer,
+  detectOfferAlerts,
   extractOfferFacts,
   extractOfferTitle,
   targetRoles,
@@ -19,6 +20,7 @@ const roleIds = [
 ]
 
 const frontendKeys = [
+  'alerts',
   'compatibility',
   'evidence',
   'explanation',

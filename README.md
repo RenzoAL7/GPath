@@ -1,27 +1,24 @@
-# GrowPath — Analizador de ofertas
+# GrowPath — Ruta para postular
 
 <p align="center">
   <img src="public/gpath-mark.svg" width="96" alt="Logo de GrowPath" />
 </p>
 
 <p align="center">
-  <strong>Tu ruta rápida para entender una oferta antes de postular.</strong>
+  <strong>Pega una oferta y mira si es confiable, qué piden y qué te falta.</strong>
 </p>
 
-GrowPath organiza una oferta laboral en tres pasos: leerla, revisar los requisitos y
-las evidencias detectadas, y consultar un análisis general con ideas para prepararte.
-Puedes pegar un enlace HTTPS público o la descripción de la oferta. No necesitas una
-cuenta ni subir tu CV.
+GrowPath convierte una oferta laboral en una ruta de cinco paradas. Puedes pegar un
+enlace HTTPS público o la descripción de la oferta y, si quieres, agregar tu CV para
+compararlo. No necesitas una cuenta.
 
 ## Qué encontrarás
 
-- Un enlace HTTPS público o una descripción pegada manualmente por cada análisis.
-- Requisitos técnicos y deseables, además del nivel, la ubicación, la modalidad y el
-  salario cuando aparecen en la oferta.
-- Fragmentos de la oferta que respaldan los hallazgos para que puedas revisarlos.
-- Una lectura rápida, una explicación de para quién puede encajar el puesto, qué puede
-  aportarte y qué podrías demostrar.
-- Navegación entre los pasos para volver a revisar la oferta sin perder lo leído.
+- Señales de posible estafa, cada una con la frase de la oferta que la respalda.
+- Requisitos técnicos y deseables, con la cita de cada uno, además del nivel, la
+  ubicación, la modalidad y el salario cuando aparecen en la oferta.
+- Con tu CV, qué requisitos ya cumples y cuáles te faltan.
+- Qué demostrar en la entrevista y el enlace a la oferta original.
 
 ## Inicio rápido
 
@@ -44,12 +41,11 @@ La versión de contenedores queda disponible en http://127.0.0.1:8080.
 
 ## Flujo de uso
 
-1. **Lee una oferta.** Pega el enlace público. Si no se puede abrir, selecciona
-   **No puedo abrir el enlace** y pega su descripción.
-2. **Revisa lo detectado.** Comprueba el puesto, los requisitos, los datos disponibles y
-   las evidencias textuales de la oferta.
-3. **Consulta el análisis.** Lee el resumen general y las ideas para prepararte usando
-   únicamente la información disponible de esa oferta.
+1. **Pega la oferta.** Usa el enlace público. Si no se puede abrir, selecciona
+   **¿No abre? Pega la descripción.**
+2. **Agrega tu CV, si quieres.** PDF de hasta 2 MB, o escribe tus habilidades.
+3. **Sigue tu ruta:** ¿es confiable?, lo que piden, lo que te falta, qué demostrar y
+   postula.
 
 El lector necesita contenido público. Si la página requiere iniciar sesión, bloquea la
 lectura o no entrega texto, puedes pegar la descripción manualmente.
@@ -62,7 +58,19 @@ No ejecuta scripts de la página ni usa cookies.
 
 GrowPath no crea cuentas ni almacena el texto de una oferta como historial de usuario.
 La respuesta se calcula durante la solicitud y el registro técnico evita guardar la
-URL o la descripción enviada.
+URL, la descripción enviada o la IP.
+
+El CV se lee en el navegador con PDF.js y se compara con el catálogo de habilidades en
+la misma pestaña: no se envía al servidor. Solo queda en memoria la lista de habilidades
+con su frase de origen, y se borra al cerrar o recargar la pestaña. Las señales de estafa
+son reglas sobre el texto de la oferta: ayudan a detectar riesgos, pero su ausencia no
+garantiza que una oferta sea real.
+
+Para evitar abusos, <code>POST /api/analyze</code> admite 10 análisis por minuto por
+cliente, 120 por minuto en total y 8 simultáneos. Al superarlos responde 429 o 503
+con <code>Retry-After</code>. La lectura de un enlace tiene un máximo de 20 segundos,
+incluidas las redirecciones. Los límites viven en la memoria de cada réplica y se
+configuran con las variables de <code>.env.example</code>.
 
 ## API
 

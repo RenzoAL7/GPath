@@ -3,9 +3,9 @@ import { mkdir, copyFile } from 'node:fs/promises'
 const destination = new URL('../public/licenses/', import.meta.url)
 await mkdir(destination, { recursive: true })
 for (const packageName of [
-  '@fontsource/space-grotesk',
-  '@fontsource/ibm-plex-sans',
-  '@fontsource/ibm-plex-mono',
+  '@fontsource/sora',
+  '@fontsource/public-sans',
+  'pdfjs-dist',
   'react',
   'react-dom',
   'react-icons',
