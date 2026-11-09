@@ -98,7 +98,7 @@ test('the real API turns a pasted offer into the five-stop route', async ({ page
       'Buscamos Data Analyst Junior con Python y SQL. Trabajo remoto para Perú. Salario: S/ 3,000.',
     )
   await page.getByRole('button', { name: 'Ver mi ruta' }).click()
-  for (const name of ['¿Es confiable?', 'Lo que piden', 'Lo que te falta', 'Qué demostrar']) {
+  for (const name of ['¿Es confiable?', 'Lo que piden', 'Lo que te falta', 'Qué destacar']) {
     await expect(page.getByRole('heading', { name })).toBeVisible()
   }
   await expect(page.getByRole('heading', { name: 'Postula' })).toBeVisible()
@@ -372,9 +372,9 @@ test('groups what is missing and picks real experience as the example', async ({
   const missing = page.locator('.plain-list li')
   await expect(missing).toHaveCount(2)
   await expect(missing.first()).toContainText('MongoDB y Airflow son requisitos')
-  await expect(missing.first()).toContainText('Empieza por MongoDB')
+  await expect(missing.first()).toContainText('Si manejas alguno, agrégalo a tu CV')
   await expect(missing.last()).toContainText('BigQuery y GCP son deseables')
-  await expect(page.getByText(/Prepara|prepara/)).toHaveCount(1)
+  await expect(page.getByText(/Prepara|prepara/)).toHaveCount(0)
   const demonstrate = page.getByText(/Tu mejor ejemplo es/)
   await expect(demonstrate).toContainText('Proyecto de ventas')
   await expect(demonstrate).toContainText('Conecta con SQL')
@@ -386,13 +386,13 @@ test('groups what is missing and picks real experience as the example', async ({
   })
 })
 
-test('asks for a concrete case when the CV only lists tools', async ({ page }) => {
+test('does not demand proof when the CV only lists tools', async ({ page }) => {
   await mockAnalysis(page, manyGaps)
   await page.goto('/')
   await uploadCv(page, pdf(['Lenguajes: Python, SQL, Java, Go, JavaScript, TypeScript, Docker.']))
   await expect(page.getByText(/cv-ana-prueba\.pdf/)).toBeVisible()
   await readOffer(page)
-  await expect(page.getByText(/Tu CV nombra Python y SQL, pero no muestra/)).toBeVisible()
+  await expect(page.getByText(/Tu CV ya menciona Python y SQL\. Si te preguntan/)).toBeVisible()
   await expect(page.getByText(/Tu mejor ejemplo es/)).toHaveCount(0)
 })
 

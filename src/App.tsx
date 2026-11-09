@@ -191,8 +191,8 @@ function cvSkill(name: string, cv: CvProfile | null) {
 function genericDemonstration(result: AnalysisResult) {
   const technical = result.requirements.technical.slice(0, 2)
   return technical.length
-    ? `Elige un proyecto donde hayas usado ${formatList(technical)} y cuenta qué problema resolviste.`
-    : 'Lleva un proyecto relacionado con el puesto y pregunta qué tareas asumirías al empezar.'
+    ? `Si ya trabajaste con ${formatList(technical)}, destácalo en tu postulación y ten en mente alguna tarea o proyecto por si te preguntan.`
+    : 'Destaca la experiencia que más se relacione con el puesto y pregunta qué tareas asumirías al empezar.'
 }
 
 function personalDemonstration(result: AnalysisResult, cv: CvProfile) {
@@ -200,16 +200,16 @@ function personalDemonstration(result: AnalysisResult, cv: CvProfile) {
   const owned = technical.map((name) => cvSkill(name, cv)).filter((skill) => skill !== null)
   const names = owned.slice(0, 3).map((skill) => skill.name)
   if (!owned.length)
-    return 'Tu CV no menciona lo que piden. Lleva el proyecto más cercano que tengas y explica qué aprendiste.'
+    return 'Tu CV no menciona lo que piden. Destaca la experiencia más cercana que tengas y qué te interesa aprender.'
   if (cv.source === 'manual')
-    return `Elige un proyecto donde hayas usado ${formatList(names.slice(0, 2))} y cuenta qué problema resolviste.`
+    return `Ya indicaste ${formatList(names.slice(0, 2))}. Si te preguntan, ten en mente alguna tarea o proyecto donde hayas trabajado con eso.`
   const coverage = (line: string) => technical.filter((name) => mentionsSkill(name, line))
   const best = owned
     .flatMap((skill) => (skill.example && skill.line ? [skill.line] : []))
     .sort((first, second) => coverage(second).length - coverage(first).length)[0]
   return best
-    ? `Tu mejor ejemplo es «${best}». Conecta con ${formatList(coverage(best))}: cuenta qué problema resolviste y qué resultado obtuviste.`
-    : `Tu CV nombra ${formatList(names)}, pero no muestra cómo los usaste. Prepara un caso concreto: qué problema tenías, qué hiciste y qué resultado obtuviste.`
+    ? `Tu mejor ejemplo es «${best}». Conecta con ${formatList(coverage(best))}, así que puedes usarlo si te preguntan por tu experiencia.`
+    : `Tu CV ya menciona ${formatList(names)}. Si te preguntan, ten en mente alguna tarea o proyecto donde hayas trabajado con eso.`
 }
 
 function Logo() {
@@ -657,8 +657,8 @@ export default function App() {
                       <li>
                         <strong>{formatList(missingTechnical)}</strong>{' '}
                         {missingTechnical.length === 1
-                          ? 'es requisito y aún no lo muestras. Prepara un ejemplo pequeño para explicarlo en la entrevista.'
-                          : `son requisitos que aún no muestras. Empieza por ${missingTechnical[0]}: prepara un ejemplo pequeño para la entrevista.`}
+                          ? 'es requisito y no lo encontramos en lo que compartiste. Si lo manejas, agrégalo a tu CV; si no, pregunta cuánto se usa en el puesto.'
+                          : 'son requisitos y no los encontramos en lo que compartiste. Si manejas alguno, agrégalo a tu CV; si no, pregunta cuánto se usan en el puesto.'}
                       </li>
                     )}
                     {missingPreferred.length > 0 && (
@@ -691,7 +691,7 @@ export default function App() {
               )}
             </Stop>
 
-            <Stop number={4} title="Qué demostrar">
+            <Stop number={4} title="Qué destacar">
               <p>{cv ? personalDemonstration(result, cv) : genericDemonstration(result)}</p>
             </Stop>
 
@@ -836,7 +836,7 @@ export default function App() {
           <li>¿Es confiable?</li>
           <li>Lo que piden</li>
           <li>Lo que te falta</li>
-          <li>Qué demostrar</li>
+          <li>Qué destacar</li>
           <li>Postula</li>
         </ol>
       </main>
