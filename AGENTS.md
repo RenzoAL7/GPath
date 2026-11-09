@@ -6,7 +6,7 @@
   server/ y sus pruebas en tests/.
 - GrowPath analiza una oferta laboral pública o una descripción pegada por la persona
   usuaria. El resultado es una ruta: ¿es confiable?, lo que piden, lo que te falta, qué
-  demostrar y postula.
+  destacar y postula.
 - No convertirlo en un agregador de vacantes, una landing genérica ni un panel de
   infraestructura.
 - No añadir cuentas, autenticación, CV persistido, base de datos de aplicación ni

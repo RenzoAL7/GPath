@@ -18,7 +18,7 @@ compararlo. No necesitas una cuenta.
 - Requisitos técnicos y deseables, con la cita de cada uno, además del nivel, la
   ubicación, la modalidad y el salario cuando aparecen en la oferta.
 - Con tu CV, qué requisitos ya cumples y cuáles te faltan.
-- Qué demostrar en la entrevista y el enlace a la oferta original.
+- Qué destacar al postular y el enlace a la oferta original.
 
 ## Inicio rápido
 
@@ -44,7 +44,7 @@ La versión de contenedores queda disponible en http://127.0.0.1:8080.
 1. **Pega la oferta.** Usa el enlace público. Si no se puede abrir, selecciona
    **¿No abre? Pega la descripción.**
 2. **Agrega tu CV, si quieres.** PDF de hasta 2 MB, o escribe tus habilidades.
-3. **Sigue tu ruta:** ¿es confiable?, lo que piden, lo que te falta, qué demostrar y
+3. **Sigue tu ruta:** ¿es confiable?, lo que piden, lo que te falta, qué destacar y
    postula.
 
 El lector necesita contenido público. Si la página requiere iniciar sesión, bloquea la
