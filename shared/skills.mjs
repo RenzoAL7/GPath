@@ -52,13 +52,34 @@ function textLines(value) {
     .filter(Boolean)
 }
 
-/** Finds catalog skills in free text, with the first line that mentions each. */
+const listHeading =
+  /^(?:lenguajes?|herramientas?|tecnolog[ií]as?|skills?|habilidades|stack|conocimientos|programming languages|technologies|tools)\b/i
+
+/** A line that only names tools, as opposed to one describing what was done. */
+function isSkillList(line) {
+  return (
+    listHeading.test(line) ||
+    line.split(' ').length < 4 ||
+    skillCatalog.filter(([, pattern]) => pattern.test(line)).length >= 4
+  )
+}
+
+/**
+ * Finds catalog skills in free text. Each one keeps the line that best shows it
+ * in use, falling back to a plain list only when nothing better mentions it.
+ */
 export function detectSkills(value) {
   const lines = textLines(value)
   const found = []
   for (const [name, pattern] of skillCatalog) {
-    const line = lines.find((candidate) => pattern.test(candidate))
-    if (line) found.push({ name, line: line.slice(0, maxLineLength) })
+    const candidates = lines.filter((candidate) => pattern.test(candidate))
+    if (!candidates.length) continue
+    const example = candidates.find((candidate) => !isSkillList(candidate))
+    found.push({
+      name,
+      line: (example ?? candidates[0]).slice(0, maxLineLength),
+      example: Boolean(example),
+    })
   }
   return found
 }

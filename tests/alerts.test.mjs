@@ -52,8 +52,28 @@ test('finds catalog skills in CV text with the line that mentions them', () => {
 
 test('does not confuse similar words with skills', () => {
   assert.deepEqual(detectSkills('Excelente comunicación y trabajo en GitHub con JavaScript.'), [
-    { name: 'JavaScript', line: 'Excelente comunicación y trabajo en GitHub con JavaScript.' },
+    {
+      name: 'JavaScript',
+      line: 'Excelente comunicación y trabajo en GitHub con JavaScript.',
+      example: true,
+    },
   ])
+})
+
+test('prefers a line showing a skill in use over a list of tools', () => {
+  const skills = detectSkills(
+    'Lenguajes: Python, SQL, Java.\nProyecto de ventas: crucé pedidos y clientes con SQL.',
+  )
+  const find = (name) => skills.find((skill) => skill.name === name)
+  assert.equal(find('SQL').line, 'Proyecto de ventas: crucé pedidos y clientes con SQL.')
+  assert.equal(find('SQL').example, true)
+  assert.equal(find('Python').line, 'Lenguajes: Python, SQL, Java.')
+  assert.equal(find('Python').example, false)
+})
+
+test('treats bare skill columns and long tool lists as lists', () => {
+  const skills = detectSkills('SQL\nManejo de Python, SQL, Java, Docker y Linux en general.')
+  assert.ok(skills.every((skill) => skill.example === false))
 })
 
 test('matches a requirement to its quote through the catalog aliases', () => {

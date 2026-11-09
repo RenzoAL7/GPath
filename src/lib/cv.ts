@@ -1,6 +1,6 @@
 import { detectSkills } from '../../shared/skills.mjs'
 
-export type CvSkill = { name: string; line: string | null }
+export type CvSkill = { name: string; line: string | null; example: boolean }
 
 /** Only this summary stays in memory. The file and its full text are discarded. */
 export type CvProfile = {
@@ -77,7 +77,7 @@ export async function readCvFile(file: File): Promise<CvProfile> {
 }
 
 export function profileFromSkills(value: string): CvProfile {
-  const skills = detectSkills(value).map(({ name }) => ({ name, line: null }))
+  const skills = detectSkills(value).map(({ name }) => ({ name, line: null, example: false }))
   if (!skills.length)
     throw new CvReadError(
       'No reconocimos esas habilidades. Prueba con nombres como SQL, Excel o Python.',

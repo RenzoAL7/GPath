@@ -170,11 +170,13 @@ function quickRead(result: AnalysisResult) {
 }
 
 function offerValue(result: AnalysisResult) {
-  const technical = result.requirements.technical.slice(0, 3)
-  if (technical.length > 1)
-    return `Reúne ${formatList(technical)} en un mismo puesto. Podrás preguntar cómo se combinan en el trabajo diario.`
-  if (technical.length === 1)
-    return `Menciona ${technical[0]} como herramienta concreta para explorar en la entrevista.`
+  const technical = result.requirements.technical.length
+  const preferred = result.requirements.preferred.length
+  if (preferred)
+    return `Separa ${preferred === 1 ? 'una habilidad deseable' : `${preferred} habilidades deseables`} de lo esencial, así sabes qué priorizar.`
+  if (technical > 1)
+    return `Combina ${technical} herramientas en un mismo puesto. Pregunta cómo se usan juntas en el trabajo diario.`
+  if (technical === 1) return 'Se centra en una herramienta concreta que podrás explorar a fondo.'
   return 'El texto permite ubicar el puesto, aunque faltan detalles para valorar qué experiencia ofrece.'
 }
 
@@ -194,15 +196,20 @@ function genericDemonstration(result: AnalysisResult) {
 }
 
 function personalDemonstration(result: AnalysisResult, cv: CvProfile) {
-  const owned = result.requirements.technical
-    .map((name) => cvSkill(name, cv))
-    .filter((skill) => skill !== null)
+  const { technical } = result.requirements
+  const owned = technical.map((name) => cvSkill(name, cv)).filter((skill) => skill !== null)
+  const names = owned.slice(0, 3).map((skill) => skill.name)
   if (!owned.length)
     return 'Tu CV no menciona lo que piden. Lleva el proyecto más cercano que tengas y explica qué aprendiste.'
-  const withLine = owned.find((skill) => skill.line)
-  return withLine
-    ? `Tu CV dice «${withLine.line}». Usa ese ejemplo: cuenta qué problema resolviste y qué resultado obtuviste.`
-    : `Elige un proyecto donde hayas usado ${formatList(owned.slice(0, 2).map((skill) => skill.name))} y cuenta qué problema resolviste.`
+  if (cv.source === 'manual')
+    return `Elige un proyecto donde hayas usado ${formatList(names.slice(0, 2))} y cuenta qué problema resolviste.`
+  const coverage = (line: string) => technical.filter((name) => mentionsSkill(name, line))
+  const best = owned
+    .flatMap((skill) => (skill.example && skill.line ? [skill.line] : []))
+    .sort((first, second) => coverage(second).length - coverage(first).length)[0]
+  return best
+    ? `Tu mejor ejemplo es «${best}». Conecta con ${formatList(coverage(best))}: cuenta qué problema resolviste y qué resultado obtuviste.`
+    : `Tu CV nombra ${formatList(names)}, pero no muestra cómo los usaste. Prepara un caso concreto: qué problema tenías, qué hiciste y qué resultado obtuviste.`
 }
 
 function Logo() {
@@ -646,21 +653,25 @@ export default function App() {
               {cv ? (
                 missingTechnical.length || missingPreferred.length ? (
                   <ul className="plain-list">
-                    {missingTechnical.map((name) => (
-                      <li key={name}>
-                        <strong>{name}</strong> es requisito. Prepara un ejemplo pequeño para
-                        explicarlo en la entrevista.
+                    {missingTechnical.length > 0 && (
+                      <li>
+                        <strong>{formatList(missingTechnical)}</strong>{' '}
+                        {missingTechnical.length === 1
+                          ? 'es requisito y aún no lo muestras. Prepara un ejemplo pequeño para explicarlo en la entrevista.'
+                          : `son requisitos que aún no muestras. Empieza por ${missingTechnical[0]}: prepara un ejemplo pequeño para la entrevista.`}
                       </li>
-                    ))}
-                    {missingPreferred.map((name) => (
-                      <li key={name}>
-                        <strong>{name}</strong> es deseable. Puedes preguntar si se aprende en el
-                        puesto.
+                    )}
+                    {missingPreferred.length > 0 && (
+                      <li>
+                        <strong>{formatList(missingPreferred)}</strong>{' '}
+                        {missingPreferred.length === 1
+                          ? 'es deseable. Pregunta si se aprende en el puesto.'
+                          : 'son deseables. Pregunta si se aprenden en el puesto.'}
                       </li>
-                    ))}
+                    )}
                   </ul>
                 ) : (
-                  <p>Tu CV menciona todo lo que detectamos en la oferta.</p>
+                  <p>Cubres todo lo que detectamos en la oferta.</p>
                 )
               ) : (
                 <div className="route-cv">

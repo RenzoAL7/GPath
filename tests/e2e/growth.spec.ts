@@ -186,7 +186,7 @@ test('a real PDF is compared in the tab and never reaches the server', async ({
   ).toBeVisible()
   await expect(page.getByText(/Airflow.* es requisito/)).toBeVisible()
   await expect(page.getByText(/Tableau.* es deseable/)).toBeVisible()
-  await expect(page.getByText(/Tu CV dice «/)).toBeVisible()
+  await expect(page.getByText(/Tu mejor ejemplo es «/)).toBeVisible()
 
   expect(bodies).toEqual([
     JSON.stringify({
@@ -344,6 +344,56 @@ test('reading another offer returns to the start and keeps the CV', async ({ pag
   await page.getByRole('button', { name: 'Leer otra oferta' }).click()
   await expect(page.getByLabel('Enlace de la oferta')).toHaveValue('')
   await expect(page.getByText(/cv-ana-prueba\.pdf/)).toBeVisible()
+})
+
+const manyGaps = {
+  ...result,
+  requirements: {
+    ...result.requirements,
+    technical: ['Python', 'SQL', 'MongoDB', 'Airflow'],
+    preferred: ['BigQuery', 'GCP'],
+  },
+}
+
+test('groups what is missing and picks real experience as the example', async ({
+  page,
+}, testInfo) => {
+  await mockAnalysis(page, manyGaps)
+  await page.goto('/')
+  await uploadCv(
+    page,
+    pdf([
+      'Lenguajes: Python, SQL, Java, Go, JavaScript.',
+      'Proyecto de ventas: cruce de pedidos con SQL y reportes mensuales.',
+    ]),
+  )
+  await expect(page.getByText(/cv-ana-prueba\.pdf/)).toBeVisible()
+  await readOffer(page)
+  const missing = page.locator('.plain-list li')
+  await expect(missing).toHaveCount(2)
+  await expect(missing.first()).toContainText('MongoDB y Airflow son requisitos')
+  await expect(missing.first()).toContainText('Empieza por MongoDB')
+  await expect(missing.last()).toContainText('BigQuery y GCP son deseables')
+  await expect(page.getByText(/Prepara|prepara/)).toHaveCount(1)
+  const demonstrate = page.getByText(/Tu mejor ejemplo es/)
+  await expect(demonstrate).toContainText('Proyecto de ventas')
+  await expect(demonstrate).toContainText('Conecta con SQL')
+  await expect(demonstrate).not.toContainText('Lenguajes:')
+  await expect(page.getByText(/Separa 2 habilidades deseables/)).toBeVisible()
+  await page.screenshot({
+    path: `artifacts/ruta-sin-repetir-${testInfo.project.name}.png`,
+    fullPage: true,
+  })
+})
+
+test('asks for a concrete case when the CV only lists tools', async ({ page }) => {
+  await mockAnalysis(page, manyGaps)
+  await page.goto('/')
+  await uploadCv(page, pdf(['Lenguajes: Python, SQL, Java, Go, JavaScript, TypeScript, Docker.']))
+  await expect(page.getByText(/cv-ana-prueba\.pdf/)).toBeVisible()
+  await readOffer(page)
+  await expect(page.getByText(/Tu CV nombra Python y SQL, pero no muestra/)).toBeVisible()
+  await expect(page.getByText(/Tu mejor ejemplo es/)).toHaveCount(0)
 })
 
 test('the CV picker and the requirements work from the keyboard', async ({ page }) => {
