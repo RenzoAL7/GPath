@@ -5,7 +5,8 @@
 - Este repositorio contiene la interfaz React/TypeScript en src/, la API Node.js en
   server/ y sus pruebas en tests/.
 - GrowPath analiza una oferta laboral pública o una descripción pegada por la persona
-  usuaria. El flujo es: leer oferta, revisar requisitos y ver análisis.
+  usuaria. El resultado es una ruta: ¿es confiable?, lo que piden, lo que te falta, qué
+  demostrar y postula.
 - No convertirlo en un agregador de vacantes, una landing genérica ni un panel de
   infraestructura.
 - No añadir cuentas, autenticación, CV persistido, base de datos de aplicación ni
@@ -22,12 +23,16 @@
   requisitos, salario o evidencias ni modificar el puntaje final.
 - La capa de modelos es únicamente server-side. No versionar pesos ni exponer rutas,
   secretos o credenciales al navegador.
+- El CV es opcional y temporal: se lee y compara en la pestaña, sin enviarlo al servidor
+  ni guardarlo en disco. Si un cambio necesita enviarlo, actualizar antes el aviso de
+  privacidad de la interfaz.
+- Una señal de estafa debe citar el texto que la respalda. Nunca afirmar que una oferta
+  es segura.
 
 ## Interfaz
 
 - Escribir en español claro, concreto y conversacional.
-- Mantener visible el puesto analizado antes de mostrar el análisis general.
-- Permitir retroceder entre pasos sin perder la oferta ya leída.
+- Mantener visible el puesto analizado en toda la ruta.
 - Conservar estados de carga, error, reintento, foco visible y diseño usable en móvil.
 - Reutilizar los tokens y tipografías existentes. No añadir imágenes, animaciones o
   secciones decorativas sin una utilidad clara para revisar una oferta.

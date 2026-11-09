@@ -1,3 +1,4 @@
+import { skillCatalog } from '../shared/skills.mjs'
 import { OfferReadError, readPublicOffer, validatePublicOfferUrl } from './public-offer.mjs'
 
 const maxDescriptionLength = 40_000
@@ -37,50 +38,6 @@ export const targetRoles = Object.freeze(
 const profileLevels = new Set(['practicante', 'internship', 'junior'])
 const locationPreferences = new Set(['pe', 'latam', 'any'])
 const levelRanks = { practicante: 1, internship: 1, junior: 2 }
-
-const skillCatalog = [
-  ['SQL', /\bsql\b/i, ['sql']],
-  ['Excel', /\b(?:excel|spreadsheets?)\b/i, ['excel', 'spreadsheet', 'spreadsheets']],
-  ['Power BI', /\bpower\s*bi\b/i, ['power bi', 'powerbi']],
-  ['Tableau', /\btableau\b/i, ['tableau']],
-  ['Python', /\b(?:python|phyton)\b/i, ['python', 'phyton']],
-  ['R', /\b(?:r language|r programming)\b/i, ['r', 'r language', 'r programming']],
-  ['Pandas', /\bpandas\b/i, ['pandas']],
-  ['Scikit-learn', /\b(?:scikit[- ]?learn|sklearn)\b/i, ['scikit learn', 'scikitlearn', 'sklearn']],
-  ['TensorFlow', /\btensorflow\b/i, ['tensorflow']],
-  ['PyTorch', /\bpytorch\b/i, ['pytorch']],
-  [
-    'Machine Learning',
-    /\b(?:machine learning|aprendizaje autom[aá]tico)\b/i,
-    ['machine learning', 'aprendizaje automatico'],
-  ],
-  ['JavaScript', /\bjavascript\b/i, ['javascript']],
-  ['TypeScript', /\btypescript\b/i, ['typescript']],
-  ['Node.js', /\bnode(?:\.js|js)?\b/i, ['node', 'nodejs', 'node js', 'node.js']],
-  ['Java', /\bjava\b/i, ['java']],
-  ['React', /\breact(?:\.js)?\b/i, ['react', 'reactjs', 'react.js']],
-  ['PostgreSQL', /\bpostgres(?:ql)?\b/i, ['postgres', 'postgresql']],
-  ['MySQL', /\bmysql\b/i, ['mysql']],
-  ['MongoDB', /\bmongo(?:db)?\b/i, ['mongo', 'mongodb']],
-  ['Git', /\bgit\b/i, ['git']],
-  ['Docker', /\bdocker\b/i, ['docker']],
-  ['Kubernetes', /\b(?:kubernetes|k8s|k3s)\b/i, ['kubernetes', 'k8s', 'k3s']],
-  ['Terraform', /\bterraform\b/i, ['terraform']],
-  ['Linux', /\blinux\b/i, ['linux']],
-  ['AWS', /\b(?:aws|amazon web services)\b/i, ['aws', 'amazon web services']],
-  ['BigQuery', /\bbig\s*query\b/i, ['bigquery', 'big query']],
-  ['GCP', /\b(?:gcp|google cloud)\b/i, ['gcp', 'google cloud']],
-  ['Azure', /\bazure\b/i, ['azure']],
-  ['Airflow', /\bairflow\b/i, ['airflow']],
-  ['Spark', /\b(?:apache )?spark\b/i, ['spark', 'apache spark']],
-  ['dbt', /\bdbt\b/i, ['dbt']],
-  ['Kafka', /\bkafka\b/i, ['kafka']],
-  [
-    'CI/CD',
-    /\b(?:ci\s*\/?\s*cd|continuous integration|continuous delivery)\b/i,
-    ['ci cd', 'continuous integration', 'continuous delivery'],
-  ],
-]
 
 const latinAmerica = [
   'perú',
@@ -444,6 +401,41 @@ function roleEvidence(lines, targetRole) {
     .split(/\s*\/\s*/)
     .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
   return firstEvidence(lines, new RegExp(`\\b(?:${alternatives.join('|')})\\b`, 'i'))
+}
+
+const offerAlertRules = [
+  {
+    id: 'payment',
+    label: 'Pide un pago',
+    pattern:
+      /\b(?:deber[aá]s|debes|tienes que|hay que|se requiere|necesitas)\s+(?:\p{L}+\s+){0,2}(?:abonar|pagar|depositar|yapear|plinear|transferir)(?!\p{L})|(?<!\p{L})(?:abonar|depositar|yapear|plinear)\s+(?:s\/|usd|\$|\d)|(?<!\p{L})(?:pago|costo|abono|cuota)\s+(?:[uú]nico\s+)?(?:de|por|del)\s+(?:la\s+|el\s+|tu\s+)?(?:inscripci[oó]n|capacitaci[oó]n|curso|uniforme|carn[eé]t?|fotocheck|examen|materiales|matr[ií]cula)(?!\p{L})/iu,
+  },
+  {
+    id: 'sensitive-data',
+    label: 'Pide datos sensibles',
+    pattern:
+      /(?<!\p{L})(?:foto|fotograf[ií]a|copia|imagen|escaneo)\s+(?:\p{L}+\s+){0,3}(?:dni|documento de identidad|pasaporte|carn[eé]t? de extranjer[ií]a)(?!\p{L})|(?<!\p{L})(?:env[ií]a|enviar|adjunta|adjuntar|comparte|proporciona)\s+(?:\p{L}+\s+){0,3}(?:dni|n[uú]mero de cuenta|cuenta bancaria|n[uú]mero de tarjeta|datos bancarios|clave|contrase[nñ]a|cvv)(?!\p{L})|(?<!\p{L})(?:n[uú]mero de tarjeta|cvv|clave de (?:banco|cuenta|token))(?!\p{L})/iu,
+  },
+  {
+    id: 'whatsapp-only',
+    label: 'El contacto es solo por WhatsApp',
+    pattern: /(?<!\p{L})(?:solo|s[oó]lo|[uú]nicamente|exclusivamente)(?!\p{L})[^.!?]{0,60}whatsapp/iu,
+  },
+  {
+    id: 'easy-money',
+    label: 'Promete ganancias poco realistas',
+    pattern:
+      /(?<!\p{L})(?:dinero f[aá]cil|ingresos ilimitados|ganancias garantizadas|ingresos? garantizados?|gana dinero desde casa|gana hasta\s+(?:s\/|usd|\$)|sin experiencia[^.!?]{0,40}gana)/iu,
+  },
+]
+
+/** Quotes the line behind each scam signal. Absence is not proof of safety. */
+export function detectOfferAlerts(cleanedText) {
+  const lines = sentences(cleanedText)
+  return offerAlertRules.flatMap(({ id, label, pattern }) => {
+    const line = firstEvidence(lines, pattern)
+    return line ? [{ id, label, text: shorten(line) }] : []
+  })
 }
 
 /**
@@ -894,6 +886,7 @@ export function createOfferAnalyzer({
           salary: requirements.salary,
         },
         profile: scored.profile,
+        alerts: detectOfferAlerts(cleaned),
         evidence: requirements.evidence,
         explanation,
         limitations: analysisLimitations({

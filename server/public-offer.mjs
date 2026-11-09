@@ -5,6 +5,8 @@ import https from 'node:https'
 const maxRedirects = 3
 const maxBytes = 1_000_000
 const requestTimeout = 12_000
+const totalReadTimeout = 20_000
+const timeoutMessage = 'La oferta tardó demasiado en responder. Prueba pegando el texto.'
 
 export class OfferReadError extends Error {
   constructor(message, { status = 422, code = 'offer_unavailable' } = {}) {
@@ -123,13 +125,19 @@ async function resolvePublicAddress(url, lookup = dnsLookup) {
   return records[0]
 }
 
-function requestOnce(url, address, { timeout = requestTimeout, maxSize = maxBytes } = {}) {
+export function requestOnce(
+  url,
+  address,
+  { timeout = requestTimeout, totalTimeout = totalReadTimeout, maxSize = maxBytes } = {},
+) {
   const transport = url.protocol === 'https:' ? https : http
   return new Promise((resolve, reject) => {
     let settled = false
+    let deadline
     const fail = (error) => {
       if (settled) return
       settled = true
+      clearTimeout(deadline)
       reject(error)
     }
     const request = transport.request(
@@ -184,6 +192,7 @@ function requestOnce(url, address, { timeout = requestTimeout, maxSize = maxByte
         response.on('end', () => {
           if (settled) return
           settled = true
+          clearTimeout(deadline)
           resolve({
             status: response.statusCode || 0,
             headers: response.headers,
@@ -192,13 +201,14 @@ function requestOnce(url, address, { timeout = requestTimeout, maxSize = maxByte
         })
       },
     )
+    // setTimeout only measures inactivity, so a site sending one byte at a time
+    // would never trip it. The deadline caps the whole read regardless of pace.
+    deadline = setTimeout(() => {
+      fail(new OfferReadError(timeoutMessage, { status: 504, code: 'timeout' }))
+      request.destroy()
+    }, totalTimeout)
     request.setTimeout(timeout, () =>
-      request.destroy(
-        new OfferReadError('La oferta tardó demasiado en responder. Prueba pegando el texto.', {
-          status: 504,
-          code: 'timeout',
-        }),
-      ),
+      request.destroy(new OfferReadError(timeoutMessage, { status: 504, code: 'timeout' })),
     )
     request.on('error', (error) => {
       if (error instanceof OfferReadError) return fail(error)
@@ -226,9 +236,14 @@ export async function readPublicOffer(value, options = {}) {
   let current = validatePublicOfferUrl(value)
   const lookup = options.lookup || dnsLookup
   const request = options.request || requestOnce
+  // One budget for the whole chain, so redirects cannot multiply the time.
+  const deadlineAt = Date.now() + (options.totalTimeout ?? totalReadTimeout)
   for (let redirects = 0; redirects <= maxRedirects; redirects++) {
     const address = await resolvePublicAddress(current, lookup)
-    const response = await request(current, address, options)
+    const totalTimeout = deadlineAt - Date.now()
+    if (totalTimeout <= 0)
+      throw new OfferReadError(timeoutMessage, { status: 504, code: 'timeout' })
+    const response = await request(current, address, { ...options, totalTimeout })
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       if (redirects === maxRedirects)
         throw new OfferReadError('El enlace redirige demasiadas veces.', {

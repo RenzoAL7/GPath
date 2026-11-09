@@ -3,6 +3,7 @@ import { createApi } from './app.mjs'
 import { createOfferAnalyzer } from './analyzer.mjs'
 import { modelAssetsStatus, parseModelAssets } from './model-assets.mjs'
 import { createModelRuntime } from './model-runtime.mjs'
+import { createAnalysisLimits, parseAnalysisLimits } from './rate-limit.mjs'
 
 const port = Number(process.env.PORT || 8081)
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid PORT')
@@ -20,6 +21,7 @@ const server = createApi({
   release,
   environment: process.env.RUNTIME_ENV || 'local',
   analyzer,
+  limits: createAnalysisLimits(parseAnalysisLimits()),
   log: (entry) => console.log(JSON.stringify(entry)),
 })
 server.listen(port, process.env.HOST || '0.0.0.0', () =>

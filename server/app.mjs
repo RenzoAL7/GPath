@@ -2,6 +2,7 @@ import { createServer } from 'node:http'
 import { randomUUID } from 'node:crypto'
 import { parseRelease } from '../shared/release.mjs'
 import { AnalysisInputError, createOfferAnalyzer, parseAnalysisRequest } from './analyzer.mjs'
+import { createAnalysisLimits } from './rate-limit.mjs'
 
 const maxAnalysisRequestBytes = 48_000
 
@@ -62,6 +63,7 @@ export function createApi({
   release: metadata,
   environment = 'local',
   analyzer = createOfferAnalyzer(),
+  limits = createAnalysisLimits(),
   log = () => {},
 }) {
   const release = parseRelease(metadata)
@@ -73,16 +75,17 @@ export function createApi({
     async (req, res) => {
       const requestId = randomUUID()
       const start = performance.now()
-      const send = (status, payload) => {
+      const send = (status, payload, { headers = {}, logFields = {} } = {}) => {
         res.writeHead(status, {
           'Content-Type': 'application/json; charset=utf-8',
           'Cache-Control': 'no-store',
           'X-Content-Type-Options': 'nosniff',
           'X-Request-Id': requestId,
           'X-GPath-Revision': release.revision,
+          ...headers,
         })
         res.end(req.method === 'HEAD' ? undefined : JSON.stringify(payload))
-        log({ requestId, status, durationMs: Math.round(performance.now() - start) })
+        log({ requestId, status, durationMs: Math.round(performance.now() - start), ...logFields })
       }
       let path
       try {
@@ -91,6 +94,19 @@ export function createApi({
         return send(400, { error: 'Invalid path' })
       }
       if (req.method === 'POST' && path === '/api/analyze') {
+        // Admission runs before the body is read or any offer is fetched.
+        const admission = limits.admit(req)
+        if (!admission.allowed) {
+          req.resume()
+          return send(
+            admission.status,
+            { error: admission.message },
+            {
+              headers: { 'Retry-After': String(admission.retryAfterSeconds) },
+              logFields: { limited: admission.reason },
+            },
+          )
+        }
         try {
           const request = parseAnalysisRequest(await readAnalysisBody(req))
           return send(200, await analyzer.analyze(request))
@@ -102,6 +118,8 @@ export function createApi({
           return send(503, {
             error: 'No se pudo completar el análisis. Prueba con el texto de la oferta.',
           })
+        } finally {
+          admission.release()
         }
       }
       if (!['GET', 'HEAD'].includes(req.method)) {
